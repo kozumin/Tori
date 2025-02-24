@@ -1,9 +1,9 @@
 // === CONFIGURATION PARAMETERS ===
 // Platform settings
-const PLATFORM_SPACING    = 200;    // Vertical spacing between platforms.
-const PLATFORM_SCALE_X    = 0.5;    // Multiply the platform's original width.
-const PLATFORM_SCALE_Y    = 0.5;    // Multiply the platform's original height.
-const PLATFORM_MIN_SPEED  = 10;     // Minimum horizontal speed.
+const PLATFORM_SPACING    = 250;    // Vertical spacing between platforms.
+const PLATFORM_SCALE_X    = 0.7;    // Multiply the platform's original width.
+const PLATFORM_SCALE_Y    = 0.3;    // Multiply the platform's original height.
+const PLATFORM_MIN_SPEED  = 5;     // Minimum horizontal speed.
 const PLATFORM_MAX_SPEED  = 90;     // Maximum horizontal speed.
 
 // Empty sprite settings
@@ -17,8 +17,8 @@ const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween.
 // Player settings
 const PLAYER_SPEED        = 350;    // Maximum horizontal speed.
 const PLAYER_JUMP_HEIGHT  = -400;   // Base vertical jump velocity (adjusted by direction).
-const PLAYER_WIDTH        = 64;     // Display width for player.
-const PLAYER_HEIGHT       = 128;    // Display height for player.
+const PLAYER_WIDTH        = 44;     // Display width for player.
+const PLAYER_HEIGHT       = 178;    // Display height for player.
 const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false for a static image.
 const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
 const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
