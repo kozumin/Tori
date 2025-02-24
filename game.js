@@ -34,14 +34,18 @@ const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission
 const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
 const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; // Fancy gaming font.
 const SCORE_FONT_COLOR    = "#ffffff";             // White color.
-const SCORE_X             = 360 / 2;               // Centered horizontally.
+const SCORE_X             = 360 / 2;               // Centered horizontally (will adjust dynamically).
 const SCORE_Y             = 10;                    // 10px from top.
 
 // === GAME CONFIGURATION ===
 const config = {
   type: Phaser.AUTO,
-  width: 360,
-  height: 640,
+  width: window.innerWidth,  // Use full device width
+  height: window.innerHeight, // Use full device height
+  scale: {
+    mode: Phaser.Scale.FIT, // Fit the game to the screen while maintaining aspect ratio
+    autoCenter: Phaser.Scale.CENTER_BOTH // Center horizontally and vertically
+  },
   physics: {
     default: 'arcade',
     arcade: { gravity: { y: 600 }, debug: false }
@@ -111,8 +115,8 @@ function preload() {
 function create() {
   console.log("Creating scene...");
   let bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
-  bg.displayWidth = config.width;
-  bg.displayHeight = config.height;
+  bg.displayWidth = this.scale.width;  // Use dynamic width
+  bg.displayHeight = this.scale.height; // Use dynamic height
   
   if (PLAYER_ANIMATED) {
     this.anims.create({
@@ -136,8 +140,8 @@ function create() {
   }
   
   platforms = this.physics.add.group();
-  for (let y = config.height - 20; y >= 0; y -= PLATFORM_SPACING) {
-    let x = Phaser.Math.Between(20, config.width - 20);
+  for (let y = this.scale.height - 20; y >= 0; y -= PLATFORM_SPACING) {
+    let x = Phaser.Math.Between(20, this.scale.width - 20);
     let plat = platforms.create(x, y, 'platform');
     plat.displayWidth = plat.width * PLATFORM_SCALE_X;
     plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
@@ -152,11 +156,11 @@ function create() {
   }
   
   if (PLAYER_ANIMATED) {
-    player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player');
+    player = this.physics.add.sprite(this.scale.width / 2, this.scale.height - 50, 'player');
     player.setDisplaySize(PLAYER_WIDTH, PLAYER_HEIGHT);
     player.anims.play('idle');
   } else {
-    player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player');
+    player = this.physics.add.sprite(this.scale.width / 2, this.scale.height - 50, 'player');
     player.setDisplaySize(PLAYER_WIDTH, PLAYER_HEIGHT);
   }
   player.setCollideWorldBounds(true);
@@ -171,7 +175,7 @@ function create() {
   });
   
   score = 0;
-  scoreText = this.add.text(SCORE_X, SCORE_Y, "TORI: " + score, { font: SCORE_FONT_SIZE + "px " + SCORE_FONT_FAMILY, fill: SCORE_FONT_COLOR });
+  scoreText = this.add.text(this.scale.width / 2, SCORE_Y, "TORI: " + score, { font: SCORE_FONT_SIZE + "px " + SCORE_FONT_FAMILY, fill: SCORE_FONT_COLOR });
   scoreText.setOrigin(0.5, 0);
   
   this.physics.add.overlap(player, empties, (player, emptySprite) => {
@@ -213,7 +217,7 @@ function create() {
         scale: { start: PARTICLE_SCALE, end: 0 }, // Matches example
         blendMode: 'ADD', // Matches example
         speed: TRAIL_PARTICLE_SPEED, // { min: -100, max: 100 }
-        lifespan: TRAIL_PARTICLE_LIFESPAN, // 1000ms
+        lifespan: TRAIL_PARTICLE_LIFESPAN, // 500ms
         frequency: 10, // Emit every 10ms
         quantity: 5, // 5 particles per emission
         on: false // Start off
@@ -242,9 +246,9 @@ function update() {
     player.y = scrollThreshold;
     platforms.children.iterate((platform) => {
       platform.y += delta;
-      if (platform.y > config.height) {
+      if (platform.y > this.scale.height) {
         platform.y = Phaser.Math.Between(-40, 0);
-        platform.x = Phaser.Math.Between(20, config.width - 20);
+        platform.x = Phaser.Math.Between(20, this.scale.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
         platform.body.setVelocityX(newVx);
@@ -288,7 +292,7 @@ function update() {
     }
   }
   
-  if (player.y > config.height) {
+  if (player.y > this.scale.height) {
     console.log("Player fell; restarting game.");
     restartGame(this);
   }
