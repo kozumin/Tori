@@ -15,8 +15,8 @@ const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween.
 const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween.
 
 // Player settings
-const PLAYER_SPEED        = 350;    // Maximum horizontal speed.
-const PLAYER_JUMP_HEIGHT  = -400;   // Base vertical jump velocity (adjusted by direction).
+const PLAYER_SPEED        = 400;    // Maximum horizontal speed.
+const PLAYER_JUMP_HEIGHT  = -550;   // Base vertical jump velocity (adjusted by direction).
 const PLAYER_WIDTH        = 44;     // Display width for player.
 const PLAYER_HEIGHT       = 178;    // Display height for player.
 const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false for a static image.
