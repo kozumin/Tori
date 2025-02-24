@@ -16,7 +16,7 @@ const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween.
 
 // Player settings
 const PLAYER_SPEED        = 350;    // Maximum horizontal speed.
-const PLAYER_JUMP_HEIGHT  = -400;   // Jump vertical velocity.
+const PLAYER_JUMP_HEIGHT  = -400;   // Base vertical jump velocity (adjusted by direction).
 const PLAYER_WIDTH        = 64;     // Display width for player.
 const PLAYER_HEIGHT       = 128;    // Display height for player.
 const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false for a static image.
@@ -24,7 +24,7 @@ const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
 const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
 
 // Particle effect settings
-const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles (matches example).
+const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles.
 const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle.
 const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles.
 const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from player's center to bottom edge.
@@ -34,17 +34,17 @@ const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission
 const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
 const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; // Fancy gaming font.
 const SCORE_FONT_COLOR    = "#ffffff";             // White color.
-const SCORE_X             = 360 / 2;               // Centered horizontally (will adjust dynamically).
+const SCORE_X             = 360 / 2;               // Centered horizontally (static for now).
 const SCORE_Y             = 10;                    // 10px from top.
 
 // === GAME CONFIGURATION ===
 const config = {
   type: Phaser.AUTO,
-  width: window.innerWidth,  // Use full device width
-  height: window.innerHeight, // Use full device height
+  width: 360,  // Fixed base width
+  height: 640, // Fixed base height
   scale: {
-    mode: Phaser.Scale.FIT, // Fit the game to the screen while maintaining aspect ratio
-    autoCenter: Phaser.Scale.CENTER_BOTH // Center horizontally and vertically
+    mode: Phaser.Scale.FIT, // Fit within the screen, maintaining aspect ratio
+    autoCenter: Phaser.Scale.CENTER_BOTH // Center both horizontally and vertically
   },
   physics: {
     default: 'arcade',
@@ -115,8 +115,8 @@ function preload() {
 function create() {
   console.log("Creating scene...");
   let bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
-  bg.displayWidth = this.scale.width;  // Use dynamic width
-  bg.displayHeight = this.scale.height; // Use dynamic height
+  bg.displayWidth = config.width;  // Use base width
+  bg.displayHeight = config.height; // Use base height
   
   if (PLAYER_ANIMATED) {
     this.anims.create({
@@ -140,8 +140,8 @@ function create() {
   }
   
   platforms = this.physics.add.group();
-  for (let y = this.scale.height - 20; y >= 0; y -= PLATFORM_SPACING) {
-    let x = Phaser.Math.Between(20, this.scale.width - 20);
+  for (let y = config.height - 20; y >= 0; y -= PLATFORM_SPACING) {
+    let x = Phaser.Math.Between(20, config.width - 20);
     let plat = platforms.create(x, y, 'platform');
     plat.displayWidth = plat.width * PLATFORM_SCALE_X;
     plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
@@ -156,11 +156,11 @@ function create() {
   }
   
   if (PLAYER_ANIMATED) {
-    player = this.physics.add.sprite(this.scale.width / 2, this.scale.height - 50, 'player');
+    player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player');
     player.setDisplaySize(PLAYER_WIDTH, PLAYER_HEIGHT);
     player.anims.play('idle');
   } else {
-    player = this.physics.add.sprite(this.scale.width / 2, this.scale.height - 50, 'player');
+    player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player');
     player.setDisplaySize(PLAYER_WIDTH, PLAYER_HEIGHT);
   }
   player.setCollideWorldBounds(true);
@@ -175,7 +175,7 @@ function create() {
   });
   
   score = 0;
-  scoreText = this.add.text(this.scale.width / 2, SCORE_Y, "TORI: " + score, { font: SCORE_FONT_SIZE + "px " + SCORE_FONT_FAMILY, fill: SCORE_FONT_COLOR });
+  scoreText = this.add.text(config.width / 2, SCORE_Y, "TORI: " + score, { font: SCORE_FONT_SIZE + "px " + SCORE_FONT_FAMILY, fill: SCORE_FONT_COLOR });
   scoreText.setOrigin(0.5, 0);
   
   this.physics.add.overlap(player, empties, (player, emptySprite) => {
@@ -206,21 +206,27 @@ function create() {
     let duration = pointer.upTime - pointerDownStart.time;
     console.log("Pointer up after " + duration + " ms, dx: " + dx + ", dy: " + dy);
     if (!isDragging && duration < 300 && Math.abs(dx) < 15 && Math.abs(dy) < 15) {
-      player.setVelocityY(PLAYER_JUMP_HEIGHT);
-      console.log("Player jump triggered");
+      // Jump towards the finger position
+      let angle = Phaser.Math.Angle.Between(player.x, player.y, pointer.x, pointer.y);
+      let velocityX = Math.cos(angle) * PLAYER_SPEED;
+      let velocityY = Math.sin(angle) * PLAYER_SPEED;
+      // Ensure upward jump has sufficient force
+      velocityY = Math.min(velocityY, PLAYER_JUMP_HEIGHT); // Cap upward velocity
+      player.setVelocity(velocityX, velocityY);
+      console.log("Player jump triggered towards (" + pointer.x + ", " + pointer.y + ")");
       if (PLAYER_ANIMATED) {
         player.anims.play('jump', true);
       }
-      // Phaser 3.88.2 particle emitter (direct configuration)
+      // Phaser 3.88.2 particle emitter
       particles = this.add.particles(0, 0, 'particle', {
-        frame: { frames: ['particle'], cycle: true }, // Single frame
-        scale: { start: PARTICLE_SCALE, end: 0 }, // Matches example
-        blendMode: 'ADD', // Matches example
-        speed: TRAIL_PARTICLE_SPEED, // { min: -100, max: 100 }
-        lifespan: TRAIL_PARTICLE_LIFESPAN, // 500ms
-        frequency: 10, // Emit every 10ms
-        quantity: 5, // 5 particles per emission
-        on: false // Start off
+        frame: { frames: ['particle'], cycle: true },
+        scale: { start: PARTICLE_SCALE, end: 0 },
+        blendMode: 'ADD',
+        speed: TRAIL_PARTICLE_SPEED,
+        lifespan: TRAIL_PARTICLE_LIFESPAN,
+        frequency: 10,
+        quantity: 5,
+        on: false
       });
       particles.startFollow(player, 0, TRAIL_PARTICLE_OFFSET_Y);
       particles.start();
@@ -246,9 +252,9 @@ function update() {
     player.y = scrollThreshold;
     platforms.children.iterate((platform) => {
       platform.y += delta;
-      if (platform.y > this.scale.height) {
+      if (platform.y > config.height) {
         platform.y = Phaser.Math.Between(-40, 0);
-        platform.x = Phaser.Math.Between(20, this.scale.width - 20);
+        platform.x = Phaser.Math.Between(20, config.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
         platform.body.setVelocityX(newVx);
@@ -292,7 +298,7 @@ function update() {
     }
   }
   
-  if (player.y > this.scale.height) {
+  if (player.y > config.height) {
     console.log("Player fell; restarting game.");
     restartGame(this);
   }
