@@ -265,7 +265,7 @@ function create() {
       if (PLAYER_ANIMATED) {
         player.anims.play('jump', true);
       }
-      // Trail particle emitter (removed frame config)
+      // Trail particle emitter (no frame specified)
       particles = this.add.particles('particle', {
         scale: { start: PARTICLE_SCALE, end: 0 },
         blendMode: 'ADD',
@@ -379,19 +379,19 @@ function collectEmpty(player, emptySprite) {
     onStart: () => { console.log("Collection tween started for empty sprite."); },
     onComplete: function() {
       console.log("Empty sprite collection tween complete.");
-      // Store the scene reference before destroying the sprite.
+      // Store scene reference before destroying sprite.
       let sceneRef = emptySprite.scene;
       emptySprite.destroy();
-      // Create a burst of stars at the player's position.
-      let starsParticles = sceneRef.add.particles('stars');
-      let emitter = starsParticles.createEmitter({
+      // Create a burst of stars using the new emitter creation syntax.
+      let starsParticles = sceneRef.add.particles('stars', {
          lifespan: STARS_LIFESPAN,
          speed: STARS_SPEED,
          scale: { start: STARS_SCALE_START, end: STARS_SCALE_END },
-         tint: () => Phaser.Utils.Array.GetRandom(STARS_TINTS),
+         tint: STARS_TINTS,
+         quantity: STARS_QUANTITY,
          on: false
       });
-      emitter.explode(STARS_QUANTITY, player.x, player.y);
+      starsParticles.explode(STARS_QUANTITY, player.x, player.y);
       // Destroy the stars particle system after its lifespan.
       sceneRef.time.delayedCall(STARS_LIFESPAN + 100, () => {
          starsParticles.destroy();
