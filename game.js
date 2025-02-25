@@ -3,16 +3,30 @@
 const PLATFORM_SPACING    = 250;    // Vertical spacing between platforms.
 const PLATFORM_SCALE_X    = 0.5;    // Multiply the platform's original width.
 const PLATFORM_SCALE_Y    = 0.5;    // Multiply the platform's original height.
-const PLATFORM_MIN_SPEED  = 5;     // Minimum horizontal speed.
+const PLATFORM_MIN_SPEED  = 5;      // Minimum horizontal speed.
 const PLATFORM_MAX_SPEED  = 90;     // Maximum horizontal speed.
 
 // Empty sprite settings
 const TOTAL_EMPTY_SPRITES = 15;     // Total number of empty sprites.
-const EMPTY_SPRITE_WIDTH  = 64;     // Display width for empty sprite.
-const EMPTY_SPRITE_HEIGHT = 128;    // Display height for empty sprite.
 const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floats up.
 const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween.
 const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween.
+
+// New configuration for collectible items
+const ITEM_NAMES = ['icecream', 'banana', 'broccoli', 'carrot', 'cherry', 'kitty', 'mermais', 'princess', 'strawberry', 'unicorn', 'watermelon'];
+const EMPTY_SPRITE_CONFIG = {
+  icecream:   { height: 128 },
+  banana:     { height: 128 },
+  broccoli:   { height: 128 },
+  carrot:     { height: 128 },
+  cherry:     { height: 128 },
+  kitty:      { height: 128 },
+  mermais:    { height: 128 },
+  princess:   { height: 128 },
+  strawberry: { height: 128 },
+  unicorn:    { height: 128 },
+  watermelon: { height: 128 }
+};
 
 // Player settings
 const PLAYER_SPEED        = 450;    // Maximum horizontal speed.
@@ -64,13 +78,25 @@ let score = 0;
 
 const game = new Phaser.Game(config);
 
-// Helper: Spawns an empty sprite on a platform using the "icecream" texture and sets up its idle tween.
+// Helper: Spawns an empty sprite (collectible item) on a platform using a random texture 
+// and sets up its idle tween.
 function spawnEmptyOnPlatform(platform, scene) {
   console.log("Spawning empty sprite on platform at (" + platform.x + ", " + platform.y + ")");
   let platformTop = platform.y - platform.displayHeight / 2;
-  let emptySprite = scene.add.sprite(platform.x, platformTop, 'icecream');
+  // Choose a random item from the list
+  let itemKey = Phaser.Utils.Array.GetRandom(ITEM_NAMES);
+  let emptySprite = scene.add.sprite(platform.x, platformTop, itemKey);
   emptySprite.setOrigin(0.5, 1); // Align bottom edge.
-  emptySprite.setDisplaySize(EMPTY_SPRITE_WIDTH, EMPTY_SPRITE_HEIGHT);
+  
+  // Set display size based on the config height while preserving aspect ratio.
+  let texture = scene.textures.get(itemKey).getSourceImage();
+  let originalWidth = texture.width;
+  let originalHeight = texture.height;
+  let desiredHeight = EMPTY_SPRITE_CONFIG[itemKey].height;
+  let scaleFactor = desiredHeight / originalHeight;
+  let desiredWidth = originalWidth * scaleFactor;
+  emptySprite.setDisplaySize(desiredWidth, desiredHeight);
+  
   scene.physics.add.existing(emptySprite);
   emptySprite.body.setAllowGravity(false);
   emptySprite.body.setImmovable(true);
@@ -109,7 +135,18 @@ function preload() {
   this.load.on('loaderror', (file) => {
     console.error("Error loading file:", file.key);
   });
+  // Load all collectible item textures
   this.load.image('icecream', 'assets/icecream.png');
+  this.load.image('banana', 'assets/banana.png');
+  this.load.image('broccoli', 'assets/broccoli.png');
+  this.load.image('carrot', 'assets/carrot.png');
+  this.load.image('cherry', 'assets/cherry.png');
+  this.load.image('kitty', 'assets/kitty.png');
+  this.load.image('mermais', 'assets/mermais.png');
+  this.load.image('princess', 'assets/princess.png');
+  this.load.image('strawberry', 'assets/strawberry.png');
+  this.load.image('unicorn', 'assets/unicorn.png');
+  this.load.image('watermelon', 'assets/watermelon.png');
 }
 
 function create() {
