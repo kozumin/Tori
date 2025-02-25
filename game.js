@@ -37,12 +37,20 @@ const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false
 const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
 const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
 
-// Particle effect settings
+// Particle effect settings (for jump trail)
 const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles.
 const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle.
 const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles.
 const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from player's center to bottom edge.
 const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission.
+
+// Star particle effect settings (burst on item collection)
+const STARS_LIFESPAN      = 1000;   // Lifespan (ms) for star particles.
+const STARS_QUANTITY      = 20;     // Number of star particles in the burst.
+const STARS_SCALE_START   = 0.5;    // Starting scale of star particles.
+const STARS_SCALE_END     = 0;      // Ending scale of star particles.
+const STARS_SPEED         = { min: -200, max: 200 }; // Speed range for star particles.
+const STARS_TINTS         = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff]; // Colors for stars.
 
 // Score/HUD settings
 const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
@@ -129,6 +137,8 @@ function preload() {
     this.load.image('player', 'assets/player.png');
   }
   this.load.image('particle', 'assets/particle.png');
+  // Load the stars image for the burst effect.
+  this.load.image('stars', 'assets/stars.png');
   this.load.on('filecomplete-image-particle', () => {
     console.log("Particle texture loaded successfully!");
   });
@@ -254,7 +264,7 @@ function create() {
       if (PLAYER_ANIMATED) {
         player.anims.play('jump', true);
       }
-      // Phaser 3.88.2 particle emitter
+      // Phaser 3.88.2 particle emitter (for trail)
       particles = this.add.particles(0, 0, 'particle', {
         frame: { frames: ['particle'], cycle: true },
         scale: { start: PARTICLE_SCALE, end: 0 },
@@ -287,10 +297,22 @@ function update() {
   if (player.y < scrollThreshold) {
     let delta = scrollThreshold - player.y;
     player.y = scrollThreshold;
+    // Move all platforms down by delta
     platforms.children.iterate((platform) => {
       platform.y += delta;
+    });
+    // Find the top-most (smallest y) among platforms
+    let topY = Infinity;
+    platforms.children.iterate((platform) => {
+      if (platform.y < topY) {
+        topY = platform.y;
+      }
+    });
+    // Reposition platforms that have gone off bottom
+    platforms.children.iterate((platform) => {
       if (platform.y > config.height) {
-        platform.y = Phaser.Math.Between(-40, 0);
+        topY -= PLATFORM_SPACING;
+        platform.y = topY;
         platform.x = Phaser.Math.Between(20, config.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
@@ -358,6 +380,21 @@ function collectEmpty(player, emptySprite) {
     onComplete: function() {
       console.log("Empty sprite collection tween complete.");
       emptySprite.destroy();
+      // Create a burst of stars at the player's position.
+      let starsParticles = emptySprite.scene.add.particles('stars');
+      let emitter = starsParticles.createEmitter({
+         lifespan: STARS_LIFESPAN,
+         speed: STARS_SPEED,
+         scale: { start: STARS_SCALE_START, end: STARS_SCALE_END },
+         // Randomly assign one of the tint colors to each particle.
+         tint: () => Phaser.Utils.Array.GetRandom(STARS_TINTS),
+         on: false
+      });
+      emitter.explode(STARS_QUANTITY, player.x, player.y);
+      // Destroy the particles system after the stars have expired.
+      emptySprite.scene.time.delayedCall(STARS_LIFESPAN + 100, () => {
+         starsParticles.destroy();
+      });
     }
   });
   if (emptySprite.parentPlatform) {
