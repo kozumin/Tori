@@ -12,45 +12,21 @@ const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floa
 const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween.
 const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween.
 
-// New configuration for collectible items
-const ITEM_NAMES = ['icecream', 'banana', 'broccoli', 'carrot', 'cherry', 'kitty', 'mermais', 'princess', 'strawberry', 'unicorn', 'watermelon'];
-const EMPTY_SPRITE_CONFIG = {
-  icecream:   { height: 64 },
-  banana:     { height: 64 },
-  broccoli:   { height: 64 },
-  carrot:     { height: 64 },
-  cherry:     { height: 64 },
-  kitty:      { height: 64 },
-  mermais:    { height: 64 },
-  princess:   { height: 64 },
-  strawberry: { height: 64 },
-  unicorn:    { height: 64 },
-  watermelon: { height: 64 }
-};
-
-// Player settings
-const PLAYER_SPEED        = 450;    // Maximum horizontal speed.
-const PLAYER_JUMP_HEIGHT  = -550;   // Base vertical jump velocity (adjusted by direction).
-const PLAYER_WIDTH        = 84;     // Display width for player.
-const PLAYER_HEIGHT       = 178;    // Display height for player.
-const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false for a static image.
-const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
-const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
 
 // Particle effect settings (for jump trail)
 const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles.
-const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle.
+const TRAIL_PARTICLE_LIFESPAN = 500;  // Lifespan (ms) for each trail particle.
 const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles.
-const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from player's center to bottom edge.
-const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission.
+const TRAIL_PARTICLE_OFFSET_Y = 64;   // Vertical offset from player's center to bottom edge.
+const TRAIL_PARTICLE_EMIT_DURATION = 200;  // Duration (ms) for emission.
 
-// Star particle effect settings (burst on item collection)
-const STARS_LIFESPAN      = 1000;   // Lifespan (ms) for star particles.
-const STARS_QUANTITY      = 20;     // Number of star particles in the burst.
-const STARS_SCALE_START   = 0.5;    // Starting scale of star particles.
-const STARS_SCALE_END     = 0;      // Ending scale of star particles.
-const STARS_SPEED         = { min: -200, max: 200 }; // Speed range for star particles.
-const STARS_TINTS         = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff]; // Colors for stars.
+// Star burst particle effect settings (on item collection)
+const STARS_LIFESPAN    = 1000;       // Lifespan (ms) for star particles.
+const STARS_QUANTITY    = 20;         // Number of star particles in the burst.
+const STARS_SCALE_START = 0.5;        // Starting scale of star particles.
+const STARS_SCALE_END   = 0;          // Ending scale of star particles.
+const STARS_SPEED       = { min: -200, max: 200 }; // Speed range for star particles.
+const STARS_TINTS       = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff]; // Colors for stars.
 
 // Score/HUD settings
 const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
@@ -58,6 +34,7 @@ const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; // Fancy gaming font.
 const SCORE_FONT_COLOR    = "#ffffff";             // White color.
 const SCORE_X             = 360 / 2;               // Centered horizontally (static for now).
 const SCORE_Y             = 10;                    // 10px from top.
+
 
 // === GAME CONFIGURATION ===
 const config = {
@@ -86,25 +63,13 @@ let score = 0;
 
 const game = new Phaser.Game(config);
 
-// Helper: Spawns an empty sprite (collectible item) on a platform using a random texture 
-// and sets up its idle tween.
+// Helper: Spawns an empty sprite on a platform using the "icecream" texture and sets up its idle tween.
 function spawnEmptyOnPlatform(platform, scene) {
   console.log("Spawning empty sprite on platform at (" + platform.x + ", " + platform.y + ")");
   let platformTop = platform.y - platform.displayHeight / 2;
-  // Choose a random item from the list
-  let itemKey = Phaser.Utils.Array.GetRandom(ITEM_NAMES);
-  let emptySprite = scene.add.sprite(platform.x, platformTop, itemKey);
+  let emptySprite = scene.add.sprite(platform.x, platformTop, 'icecream');
   emptySprite.setOrigin(0.5, 1); // Align bottom edge.
-  
-  // Set display size based on the config height while preserving aspect ratio.
-  let texture = scene.textures.get(itemKey).getSourceImage();
-  let originalWidth = texture.width;
-  let originalHeight = texture.height;
-  let desiredHeight = EMPTY_SPRITE_CONFIG[itemKey].height;
-  let scaleFactor = desiredHeight / originalHeight;
-  let desiredWidth = originalWidth * scaleFactor;
-  emptySprite.setDisplaySize(desiredWidth, desiredHeight);
-  
+  emptySprite.setDisplaySize(EMPTY_SPRITE_WIDTH, EMPTY_SPRITE_HEIGHT);
   scene.physics.add.existing(emptySprite);
   emptySprite.body.setAllowGravity(false);
   emptySprite.body.setImmovable(true);
@@ -136,9 +101,8 @@ function preload() {
   } else {
     this.load.image('player', 'assets/player.png');
   }
-  // Load trail particle texture (an image, not a spritesheet)
   this.load.image('particle', 'assets/particle.png');
-  // Load the stars image for the burst effect.
+  // Load the stars texture for the burst effect.
   this.load.image('stars', 'assets/stars.png');
   this.load.on('filecomplete-image-particle', () => {
     console.log("Particle texture loaded successfully!");
@@ -146,18 +110,7 @@ function preload() {
   this.load.on('loaderror', (file) => {
     console.error("Error loading file:", file.key);
   });
-  // Load all collectible item textures
   this.load.image('icecream', 'assets/icecream.png');
-  this.load.image('banana', 'assets/banana.png');
-  this.load.image('broccoli', 'assets/broccoli.png');
-  this.load.image('carrot', 'assets/carrot.png');
-  this.load.image('cherry', 'assets/cherry.png');
-  this.load.image('kitty', 'assets/kitty.png');
-  this.load.image('mermais', 'assets/mermais.png');
-  this.load.image('princess', 'assets/princess.png');
-  this.load.image('strawberry', 'assets/strawberry.png');
-  this.load.image('unicorn', 'assets/unicorn.png');
-  this.load.image('watermelon', 'assets/watermelon.png');
 }
 
 function create() {
@@ -265,8 +218,9 @@ function create() {
       if (PLAYER_ANIMATED) {
         player.anims.play('jump', true);
       }
-      // Trail particle emitter (no frame specified)
-      particles = this.add.particles('particle', {
+      // Phaser 3.88.2 particle emitter for trail (using your working code)
+      particles = this.add.particles(0, 0, 'particle', {
+        frame: { frames: ['particle'], cycle: true },
         scale: { start: PARTICLE_SCALE, end: 0 },
         blendMode: 'ADD',
         speed: TRAIL_PARTICLE_SPEED,
@@ -301,14 +255,14 @@ function update() {
     platforms.children.iterate((platform) => {
       platform.y += delta;
     });
-    // Find the top-most (smallest y) among platforms
+    // Determine the top-most platform's y-position
     let topY = Infinity;
     platforms.children.iterate((platform) => {
       if (platform.y < topY) {
         topY = platform.y;
       }
     });
-    // Reposition platforms that have gone off bottom
+    // Reposition platforms that have gone off the bottom, spacing them by PLATFORM_SPACING
     platforms.children.iterate((platform) => {
       if (platform.y > config.height) {
         topY -= PLATFORM_SPACING;
@@ -379,23 +333,24 @@ function collectEmpty(player, emptySprite) {
     onStart: () => { console.log("Collection tween started for empty sprite."); },
     onComplete: function() {
       console.log("Empty sprite collection tween complete.");
-      // Store scene reference before destroying sprite.
-      let sceneRef = emptySprite.scene;
+      // Create a burst of stars at the player's position.
+      // This emitter uses the same particle FX structure as your trail emitter.
+      let starParticles = emptySprite.scene.add.particles(0, 0, 'stars', {
+        frame: { frames: ['stars'], cycle: true },
+        scale: { start: STARS_SCALE_START, end: STARS_SCALE_END },
+        blendMode: 'ADD',
+        speed: STARS_SPEED,
+        lifespan: STARS_LIFESPAN,
+        frequency: 0,
+        quantity: STARS_QUANTITY,
+        on: false,
+        tint: STARS_TINTS
+      });
+      starParticles.explode(STARS_QUANTITY, player.x, player.y);
+      emptySprite.scene.time.delayedCall(STARS_LIFESPAN + 100, () => {
+         starParticles.destroy();
+      });
       emptySprite.destroy();
-      // Create a burst of stars using the new emitter creation syntax.
-      let starsParticles = sceneRef.add.particles('stars', {
-         lifespan: STARS_LIFESPAN,
-         speed: STARS_SPEED,
-         scale: { start: STARS_SCALE_START, end: STARS_SCALE_END },
-         tint: STARS_TINTS,
-         quantity: STARS_QUANTITY,
-         on: false
-      });
-      starsParticles.explode(STARS_QUANTITY, player.x, player.y);
-      // Destroy the stars particle system after its lifespan.
-      sceneRef.time.delayedCall(STARS_LIFESPAN + 100, () => {
-         starsParticles.destroy();
-      });
     }
   });
   if (emptySprite.parentPlatform) {
