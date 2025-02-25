@@ -136,6 +136,7 @@ function preload() {
   } else {
     this.load.image('player', 'assets/player.png');
   }
+  // Load trail particle texture (an image, not a spritesheet)
   this.load.image('particle', 'assets/particle.png');
   // Load the stars image for the burst effect.
   this.load.image('stars', 'assets/stars.png');
@@ -264,9 +265,8 @@ function create() {
       if (PLAYER_ANIMATED) {
         player.anims.play('jump', true);
       }
-      // Phaser 3.88.2 particle emitter (for trail)
-      particles = this.add.particles(0, 0, 'particle', {
-        frame: { frames: ['particle'], cycle: true },
+      // Trail particle emitter (removed frame config)
+      particles = this.add.particles('particle', {
         scale: { start: PARTICLE_SCALE, end: 0 },
         blendMode: 'ADD',
         speed: TRAIL_PARTICLE_SPEED,
@@ -379,20 +379,21 @@ function collectEmpty(player, emptySprite) {
     onStart: () => { console.log("Collection tween started for empty sprite."); },
     onComplete: function() {
       console.log("Empty sprite collection tween complete.");
+      // Store the scene reference before destroying the sprite.
+      let sceneRef = emptySprite.scene;
       emptySprite.destroy();
       // Create a burst of stars at the player's position.
-      let starsParticles = emptySprite.scene.add.particles('stars');
+      let starsParticles = sceneRef.add.particles('stars');
       let emitter = starsParticles.createEmitter({
          lifespan: STARS_LIFESPAN,
          speed: STARS_SPEED,
          scale: { start: STARS_SCALE_START, end: STARS_SCALE_END },
-         // Randomly assign one of the tint colors to each particle.
          tint: () => Phaser.Utils.Array.GetRandom(STARS_TINTS),
          on: false
       });
       emitter.explode(STARS_QUANTITY, player.x, player.y);
-      // Destroy the particles system after the stars have expired.
-      emptySprite.scene.time.delayedCall(STARS_LIFESPAN + 100, () => {
+      // Destroy the stars particle system after its lifespan.
+      sceneRef.time.delayedCall(STARS_LIFESPAN + 100, () => {
          starsParticles.destroy();
       });
     }
