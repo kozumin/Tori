@@ -1,6 +1,6 @@
 // === CONFIGURATION PARAMETERS ===
 // Platform settings
-const PLATFORM_SPACING    = 450;    // Vertical spacing between platforms.
+const PLATFORM_SPACING    = 250;    // Vertical spacing between platforms.
 const PLATFORM_SCALE_X    = 0.5;    // Multiply the platform's original width.
 const PLATFORM_SCALE_Y    = 0.5;    // Multiply the platform's original height.
 const PLATFORM_MIN_SPEED  = 5;      // Minimum horizontal speed.
@@ -12,25 +12,29 @@ const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floa
 const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween.
 const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween.
 
-// Define default width/height for collectibles (used if not scaling by texture)
-const EMPTY_SPRITE_WIDTH  = 64;
-const EMPTY_SPRITE_HEIGHT = 128;
-
-// New configuration for collectible items
-const ITEM_NAMES = ['icecream', 'banana', 'broccoli', 'carrot', 'cherry', 'kitty', 'mermais', 'princess', 'strawberry', 'unicorn', 'watermelon'];
-const EMPTY_SPRITE_CONFIG = {
-  icecream:   { height: 64 },
-  banana:     { height: 64 },
-  broccoli:   { height: 64 },
-  carrot:     { height: 64 },
-  cherry:     { height: 64 },
-  kitty:      { height: 64 },
-  mermais:    { height: 64 },
-  princess:   { height: 64 },
-  strawberry: { height: 64 },
-  unicorn:    { height: 64 },
-  watermelon: { height: 64 }
-};
+// Item-specific sizes
+const ICECREAM_WIDTH      = 64;     // Display width for icecream.
+const ICECREAM_HEIGHT     = 128;    // Display height for icecream.
+const BANANA_WIDTH        = 64;     // Display width for banana.
+const BANANA_HEIGHT       = 128;    // Display height for banana.
+const BROCCOLI_WIDTH      = 64;     // Display width for broccoli.
+const BROCCOLI_HEIGHT     = 128;    // Display height for broccoli.
+const CARROT_WIDTH        = 64;     // Display width for carrot.
+const CARROT_HEIGHT       = 128;    // Display height for carrot.
+const CHERRY_WIDTH        = 64;     // Display width for cherry.
+const CHERRY_HEIGHT       = 128;    // Display height for cherry.
+const KITTY_WIDTH         = 64;     // Display width for kitty.
+const KITTY_HEIGHT        = 128;    // Display height for kitty.
+const MERMAID_WIDTH       = 64;     // Display width for mermaid.
+const MERMAID_HEIGHT      = 128;    // Display height for mermaid.
+const PRINCESS_WIDTH      = 64;     // Display width for princess.
+const PRINCESS_HEIGHT     = 128;    // Display height for princess.
+const STRAWBERRY_WIDTH    = 64;     // Display width for strawberry.
+const STRAWBERRY_HEIGHT   = 128;    // Display height for strawberry.
+const UNICORN_WIDTH       = 64;     // Display width for unicorn.
+const UNICORN_HEIGHT      = 128;    // Display height for unicorn.
+const WATERMELON_WIDTH    = 64;     // Display width for watermelon.
+const WATERMELON_HEIGHT   = 128;    // Display height for watermelon.
 
 // Player settings
 const PLAYER_SPEED        = 450;    // Maximum horizontal speed.
@@ -41,36 +45,28 @@ const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false
 const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
 const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
 
-// Particle effect settings (for jump trail)
+// Particle effect settings
 const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles.
-const TRAIL_PARTICLE_LIFESPAN = 500;  // Lifespan (ms) for each trail particle.
+const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle.
 const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles.
-const TRAIL_PARTICLE_OFFSET_Y = 64;   // Vertical offset from player's center to bottom edge.
-const TRAIL_PARTICLE_EMIT_DURATION = 200;  // Duration (ms) for emission.
-
-// Star particle effect settings (burst on item collection)
-const STARS_LIFESPAN      = 1000;   // Lifespan (ms) for star particles.
-const STARS_QUANTITY      = 20;     // Number of star particles in the burst.
-const STARS_SCALE_START   = 0.5;    // Starting scale of star particles.
-const STARS_SCALE_END     = 0;      // Ending scale of star particles.
-const STARS_SPEED         = { min: -200, max: 200 }; // Speed range for star particles.
-const STARS_TINTS         = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff]; // Colors for stars.
+const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from player's center to bottom edge.
+const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission.
 
 // Score/HUD settings
-const SCORE_FONT_SIZE     = 32;                    
-const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; 
-const SCORE_FONT_COLOR    = "#ffffff";             
-const SCORE_X             = 360 / 2;               
-const SCORE_Y             = 10;                    
+const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
+const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; // Fancy gaming font.
+const SCORE_FONT_COLOR    = "#ffffff";             // White color.
+const SCORE_X             = 360 / 2;               // Centered horizontally (static for now).
+const SCORE_Y             = 10;                    // 10px from top.
 
 // === GAME CONFIGURATION ===
 const config = {
   type: Phaser.AUTO,
-  width: 360,  
-  height: 640, 
+  width: 360,  // Fixed base width
+  height: 640, // Fixed base height
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    mode: Phaser.Scale.FIT, // Fit within the screen, maintaining aspect ratio
+    autoCenter: Phaser.Scale.CENTER_BOTH // Center both horizontally and vertically
   },
   physics: {
     default: 'arcade',
@@ -90,25 +86,27 @@ let score = 0;
 
 const game = new Phaser.Game(config);
 
-// Helper: Spawns an empty sprite (collectible item) on a platform using a random texture 
-// and sets up its idle tween.
+// Helper: Spawns a random empty sprite on a platform with its specific size and animation.
 function spawnEmptyOnPlatform(platform, scene) {
   console.log("Spawning empty sprite on platform at (" + platform.x + ", " + platform.y + ")");
+  const items = [
+    { name: 'icecream', width: ICECREAM_WIDTH, height: ICECREAM_HEIGHT },
+    { name: 'banana', width: BANANA_WIDTH, height: BANANA_HEIGHT },
+    { name: 'broccoli', width: BROCCOLI_WIDTH, height: BROCCOLI_HEIGHT },
+    { name: 'carrot', width: CARROT_WIDTH, height: CARROT_HEIGHT },
+    { name: 'cherry', width: CHERRY_WIDTH, height: CHERRY_HEIGHT },
+    { name: 'kitty', width: KITTY_WIDTH, height: KITTY_HEIGHT },
+    { name: 'mermaid', width: MERMAID_WIDTH, height: MERMAID_HEIGHT },
+    { name: 'princess', width: PRINCESS_WIDTH, height: PRINCESS_HEIGHT },
+    { name: 'strawberry', width: STRAWBERRY_WIDTH, height: STRAWBERRY_HEIGHT },
+    { name: 'unicorn', width: UNICORN_WIDTH, height: UNICORN_HEIGHT },
+    { name: 'watermelon', width: WATERMELON_WIDTH, height: WATERMELON_HEIGHT }
+  ];
+  const item = items[Phaser.Math.Between(0, items.length - 1)]; // Randomly select an item
   let platformTop = platform.y - platform.displayHeight / 2;
-  // Choose a random item from the list
-  let itemKey = Phaser.Utils.Array.GetRandom(ITEM_NAMES);
-  let emptySprite = scene.add.sprite(platform.x, platformTop, itemKey);
+  let emptySprite = scene.add.sprite(platform.x, platformTop, item.name);
   emptySprite.setOrigin(0.5, 1); // Align bottom edge.
-  
-  // Scale based on the texture's original dimensions while preserving aspect ratio.
-  let texture = scene.textures.get(itemKey).getSourceImage();
-  let originalWidth = texture.width;
-  let originalHeight = texture.height;
-  let desiredHeight = EMPTY_SPRITE_CONFIG[itemKey].height;
-  let scaleFactor = desiredHeight / originalHeight;
-  let desiredWidth = originalWidth * scaleFactor;
-  emptySprite.setDisplaySize(desiredWidth, desiredHeight);
-  
+  emptySprite.setDisplaySize(item.width, item.height); // Use item-specific size
   scene.physics.add.existing(emptySprite);
   emptySprite.body.setAllowGravity(false);
   emptySprite.body.setImmovable(true);
@@ -123,13 +121,13 @@ function spawnEmptyOnPlatform(platform, scene) {
     yoyo: true,
     repeat: -1,
     ease: EMPTY_IDLE_EASE,
-    onStart: () => { console.log("Idle tween started for empty sprite on platform at (" + platform.x + ", " + platform.y + ")"); }
+    onStart: () => { console.log("Idle tween started for " + item.name + " on platform at (" + platform.x + ", " + platform.y + ")"); }
   });
 }
 
 function preload() {
   console.log("Preloading assets...");
-  console.log("Phaser version:", Phaser.VERSION);
+  console.log("Phaser version:", Phaser.VERSION); // Verify version
   this.load.image('background', 'assets/background.png');
   this.load.image('platform', 'assets/platform.png');
   if (PLAYER_ANIMATED) {
@@ -140,24 +138,21 @@ function preload() {
   } else {
     this.load.image('player', 'assets/player.png');
   }
-  // Load trail particle texture (an image, not a spritesheet)
   this.load.image('particle', 'assets/particle.png');
-  // Load the stars texture for the burst effect.
-  this.load.image('stars', 'assets/stars.png');
   this.load.on('filecomplete-image-particle', () => {
     console.log("Particle texture loaded successfully!");
   });
   this.load.on('loaderror', (file) => {
     console.error("Error loading file:", file.key);
   });
-  // Load all collectible item textures
+  // Preload all 11 item textures
   this.load.image('icecream', 'assets/icecream.png');
   this.load.image('banana', 'assets/banana.png');
   this.load.image('broccoli', 'assets/broccoli.png');
   this.load.image('carrot', 'assets/carrot.png');
   this.load.image('cherry', 'assets/cherry.png');
   this.load.image('kitty', 'assets/kitty.png');
-  this.load.image('mermais', 'assets/mermais.png');
+  this.load.image('mermaid', 'assets/mermaid.png');
   this.load.image('princess', 'assets/princess.png');
   this.load.image('strawberry', 'assets/strawberry.png');
   this.load.image('unicorn', 'assets/unicorn.png');
@@ -167,8 +162,8 @@ function preload() {
 function create() {
   console.log("Creating scene...");
   let bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
-  bg.displayWidth = config.width;
-  bg.displayHeight = config.height;
+  bg.displayWidth = config.width;  // Use base width
+  bg.displayHeight = config.height; // Use base height
   
   if (PLAYER_ANIMATED) {
     this.anims.create({
@@ -258,18 +253,16 @@ function create() {
     let duration = pointer.upTime - pointerDownStart.time;
     console.log("Pointer up after " + duration + " ms, dx: " + dx + ", dy: " + dy);
     if (!isDragging && duration < 300 && Math.abs(dx) < 15 && Math.abs(dy) < 15) {
-      // Jump towards the finger position
       let angle = Phaser.Math.Angle.Between(player.x, player.y, pointer.x, pointer.y);
       let velocityX = Math.cos(angle) * PLAYER_SPEED;
       let velocityY = Math.sin(angle) * PLAYER_SPEED;
-      // Ensure upward jump has sufficient force
       velocityY = Math.min(velocityY, PLAYER_JUMP_HEIGHT);
       player.setVelocity(velocityX, velocityY);
       console.log("Player jump triggered towards (" + pointer.x + ", " + pointer.y + ")");
       if (PLAYER_ANIMATED) {
         player.anims.play('jump', true);
       }
-      // Trail particle emitter (using your working Phaser 3.88.2 code)
+      // Updated Phaser 3.88.2 particle emitter
       particles = this.add.particles('particle', {
         frame: { frames: ['particle'], cycle: true },
         scale: { start: PARTICLE_SCALE, end: 0 },
@@ -278,7 +271,7 @@ function create() {
         lifespan: TRAIL_PARTICLE_LIFESPAN,
         frequency: 10,
         quantity: 5,
-        on: false
+        emitting: false // Start off (replaces 'on' property)
       });
       particles.startFollow(player, 0, TRAIL_PARTICLE_OFFSET_Y);
       particles.start();
@@ -302,22 +295,10 @@ function update() {
   if (player.y < scrollThreshold) {
     let delta = scrollThreshold - player.y;
     player.y = scrollThreshold;
-    // Move all platforms down by delta
     platforms.children.iterate((platform) => {
       platform.y += delta;
-    });
-    // Determine the top-most platform's y-position
-    let topY = Infinity;
-    platforms.children.iterate((platform) => {
-      if (platform.y < topY) {
-        topY = platform.y;
-      }
-    });
-    // Reposition platforms that have gone off the bottom, spacing them consistently
-    platforms.children.iterate((platform) => {
       if (platform.y > config.height) {
-        topY -= PLATFORM_SPACING;
-        platform.y = topY;
+        platform.y = Phaser.Math.Between(-40, 0);
         platform.x = Phaser.Math.Between(20, config.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
@@ -384,24 +365,6 @@ function collectEmpty(player, emptySprite) {
     onStart: () => { console.log("Collection tween started for empty sprite."); },
     onComplete: function() {
       console.log("Empty sprite collection tween complete.");
-      // Store scene reference before destroying sprite.
-      let sceneRef = emptySprite.scene;
-      // Create a burst of stars at the player's position using the working Phaser 3.88.2 particle FX
-      let starParticles = sceneRef.add.particles('stars', {
-         frame: { frames: ['stars'], cycle: true },
-         scale: { start: STARS_SCALE_START, end: STARS_SCALE_END },
-         blendMode: 'ADD',
-         speed: STARS_SPEED,
-         lifespan: STARS_LIFESPAN,
-         frequency: 0,
-         quantity: STARS_QUANTITY,
-         on: false,
-         tint: STARS_TINTS
-      });
-      starParticles.explode(STARS_QUANTITY, player.x, player.y);
-      sceneRef.time.delayedCall(STARS_LIFESPAN + 100, () => {
-         starParticles.destroy();
-      });
       emptySprite.destroy();
     }
   });
