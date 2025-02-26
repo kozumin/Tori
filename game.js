@@ -214,7 +214,7 @@ function create() {
   
   this.physics.add.collider(player, platforms);
   
-  empties = this.add.group();
+  empties = this.physics.add.group();
   platforms.getChildren().forEach((plat) => {
     if (empties.getLength() < TOTAL_EMPTY_SPRITES) {
       spawnEmptyOnPlatform(plat, this);
@@ -264,7 +264,6 @@ function create() {
       }
       // Jump trail particles (Phaser 3.88.2 compatible)
       particles = this.add.particles('particle', {
-        frame: { frames: ['particle'], cycle: true },
         scale: { start: PARTICLE_SCALE, end: 0 },
         blendMode: 'ADD',
         speed: TRAIL_PARTICLE_SPEED,
@@ -357,7 +356,6 @@ function collectEmpty(player, emptySprite, scene) {
   
   // Star burst particles (Phaser 3.88.2 compatible)
   let starParticles = scene.add.particles('stars', {
-    frame: { frames: ['stars'], cycle: true },
     scale: { start: STAR_BURST_SCALE, end: 0 },
     blendMode: 'ADD',
     speed: STAR_BURST_SPEED,
