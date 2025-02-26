@@ -134,7 +134,7 @@ function preload() {
   } else {
     this.load.image('player', 'assets/player.png');
   }
-  this.load.image('particle', 'assets/stars.png');
+  this.load.image('particle', 'assets/particle.png');
   this.load.image('stars', 'assets/stars.png'); // Load stars texture for burst
   this.load.on('filecomplete-image-particle', () => {
     console.log("Particle texture loaded successfully!");
