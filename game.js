@@ -38,11 +38,11 @@ const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
 const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
 
 // Particle effect settings
-const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles.
-const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle.
+const PARTICLE_SCALE      = 0.01;    // Starting scale for jump particles.
+const TRAIL_PARTICLE_LIFESPAN = 200;              // Lifespan (ms) for each trail particle.
 const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles.
 const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from player's center to bottom edge.
-const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission.
+const TRAIL_PARTICLE_EMIT_DURATION = 100;          // Duration (ms) for emission.
 
 // Star burst particle effect settings (on item collection)
 const STAR_BURST_LIFESPAN = 2000;   // Lifespan (ms) for star particles.
