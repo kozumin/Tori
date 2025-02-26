@@ -182,7 +182,7 @@ function create() {
   }
   
   platforms = this.physics.add.group();
-  for (let y = config.height - 20; y >= -PLATFORM_SPACING * 2; y -= PLATFORM_SPACING) {
+  for (let y = config.height - 20; y >= -PLATFORM_SPACING * 8; y -= PLATFORM_SPACING) { // ~2000px above screen
     let x = Phaser.Math.Between(20, config.width - 20);
     let plat = platforms.create(x, y, 'platform');
     plat.displayWidth = plat.width * PLATFORM_SCALE_X;
@@ -288,14 +288,12 @@ function update() {
   if (player.y < scrollThreshold) {
     let delta = scrollThreshold - player.y;
     player.y = scrollThreshold;
-    let highestY = config.height;
-    platforms.getChildren().forEach((platform) => {
-      if (platform.y < highestY) highestY = platform.y;
-    });
+    let topBuffer = -PLATFORM_SPACING * 2; // Buffer ~500px above screen top
     platforms.children.iterate((platform) => {
       platform.y += delta;
       if (platform.y > config.height + platform.displayHeight) {
-        platform.y = highestY - PLATFORM_SPACING;
+        platform.y = topBuffer - PLATFORM_SPACING; // Place relative to top buffer
+        topBuffer = platform.y; // Update buffer for next platform
         platform.x = Phaser.Math.Between(20, config.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
