@@ -10,7 +10,7 @@ const PLATFORM_MAX_SPEED  = 90;     // Maximum horizontal speed.
 const TOTAL_EMPTY_SPRITES = 15;     // Total number of empty sprites.
 const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floats up.
 const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween.
-const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween.
+const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween;
 
 // New configuration for collectible items
 const ITEM_NAMES = ['icecream', 'banana', 'broccoli', 'carrot', 'cherry', 'kitty', 'mermais', 'princess', 'strawberry', 'unicorn', 'watermelon'];
@@ -37,7 +37,7 @@ const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false
 const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
 const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
 
-// Jump particle effect settings (trail)
+// Particle effect settings
 const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles.
 const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle.
 const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles.
@@ -263,14 +263,14 @@ function create() {
         player.anims.play('jump', true);
       }
       // Jump trail particles (Phaser 3.88.2 compatible, matching working example)
-      particles = this.add.particles('particle', {
+      particles = this.add.particles(0, 0, 'particle', {
         scale: { start: PARTICLE_SCALE, end: 0 },
         blendMode: 'ADD',
         speed: TRAIL_PARTICLE_SPEED,
         lifespan: TRAIL_PARTICLE_LIFESPAN,
         frequency: 10,
         quantity: 5,
-        emitting: false
+        on: false // Start off, as per working example
       });
       particles.startFollow(player, 0, TRAIL_PARTICLE_OFFSET_Y);
       particles.start();
@@ -296,8 +296,8 @@ function update() {
     player.y = scrollThreshold;
     platforms.children.iterate((platform) => {
       platform.y += delta;
-      if (platform.y > config.height + PLATFORM_SPACING) { // Ensure full spacing when recycling
-        platform.y = -PLATFORM_SPACING; // Start above screen with consistent spacing
+      if (platform.y > config.height + PLATFORM_SPACING) {
+        platform.y = -PLATFORM_SPACING; // Consistent spacing for recycling
         platform.x = Phaser.Math.Between(20, config.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
@@ -355,17 +355,18 @@ function collectEmpty(player, emptySprite, scene) {
   emptySprite.body.enable = false;
   
   // Star burst particles (Phaser 3.88.2 compatible, matching working example)
-  let starParticles = scene.add.particles('stars', {
+  let starParticles = scene.add.particles(0, 0, 'stars', {
     scale: { start: STAR_BURST_SCALE, end: 0 },
     blendMode: 'ADD',
     speed: STAR_BURST_SPEED,
     lifespan: STAR_BURST_LIFESPAN,
     quantity: STAR_BURST_QUANTITY,
-    emitting: true,
+    on: true, // Emit once immediately, as per working example style
     x: emptySprite.x,
     y: emptySprite.y,
-    tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random colors: red, green, blue, yellow, purple
+    tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random colors
   });
+  starParticles.setPosition(emptySprite.x, emptySprite.y); // Ensure position
   scene.time.delayedCall(STAR_BURST_LIFESPAN, () => {
     starParticles.destroy(); // Destroy after last particle dies
   });
