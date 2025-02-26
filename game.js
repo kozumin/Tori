@@ -48,7 +48,7 @@ const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission
 const STAR_BURST_LIFESPAN = 1000;   // Lifespan (ms) for star particles.
 const STAR_BURST_QUANTITY = 10;     // Number of star particles in burst.
 const STAR_BURST_SCALE    = 0.5;    // Starting scale for star particles.
-const STAR_BURST_SPEED    = { min: 50, max: 200 }; // Speed range for radial burst (adjusted for visibility)
+const STAR_BURST_SPEED    = { min: 50, max: 200 }; // Speed range for radial burst
 
 // Score/HUD settings
 const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
@@ -138,6 +138,9 @@ function preload() {
   this.load.image('stars', 'assets/stars.png'); // Load stars texture for burst
   this.load.on('filecomplete-image-particle', () => {
     console.log("Particle texture loaded successfully!");
+  });
+  this.load.on('filecomplete-image-stars', () => {
+    console.log("Stars texture loaded successfully!");
   });
   this.load.on('loaderror', (file) => {
     console.error("Error loading file:", file.key);
@@ -355,6 +358,7 @@ function collectEmpty(player, emptySprite, scene) {
   emptySprite.body.enable = false;
   
   // Star burst particles (Phaser 3.88.2 compatible, matching jump trail technique)
+  console.log("Creating star burst emitter at (" + emptySprite.x + ", " + emptySprite.y + ")");
   let starParticles = scene.add.particles(0, 0, 'stars', {
     scale: { start: STAR_BURST_SCALE, end: 0 },
     blendMode: 'ADD',
@@ -362,14 +366,21 @@ function collectEmpty(player, emptySprite, scene) {
     radial: true, // Ensures radial emission around the point
     lifespan: STAR_BURST_LIFESPAN,
     quantity: STAR_BURST_QUANTITY,
-    on: true, // Emit immediately for a one-time burst
+    on: false, // Start off, then trigger manually
     x: emptySprite.x,
     y: emptySprite.y,
     tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random colors
   });
   starParticles.setPosition(emptySprite.x, emptySprite.y); // Ensure position
-  scene.time.delayedCall(STAR_BURST_LIFESPAN, () => {
-    starParticles.destroy(); // Destroy emitter after particles die
+  console.log("Starting star burst emission");
+  starParticles.start(); // Trigger the one-time burst
+  scene.time.delayedCall(50, () => { // Short delay to allow burst, then stop
+    starParticles.stop();
+    console.log("Star burst emission stopped");
+    scene.time.delayedCall(STAR_BURST_LIFESPAN, () => {
+      starParticles.destroy(); // Destroy emitter after particles die
+      console.log("Star burst emitter destroyed");
+    });
   });
   
   emptySprite.scene.tweens.add({
