@@ -7,7 +7,7 @@ const PLATFORM_MIN_SPEED  = 5;      // Minimum horizontal speed.
 const PLATFORM_MAX_SPEED  = 90;     // Maximum horizontal speed.
 
 // Empty sprite settings
-const TOTAL_EMPTY_SPRITES = 15;     // Total number of empty sprites initially.
+const TOTAL_EMPTY_SPRITES = 15;     // Total number of empty sprites.
 const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floats up.
 const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween.
 const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween;
@@ -37,18 +37,25 @@ const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false
 const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
 const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
 
-// Jump particle effect settings (trail)
+// Particle effect settings
 const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles.
 const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle.
 const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles.
-const TRAIL_PARTICLE_OFFSET_Y = 64;               // Vertical offset from player's center to bottom edge.
-const TRAIL_PARTICLE_EMIT_DURATION = 200;         // Duration (ms) for emission.
+const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from player's center to bottom edge.
+const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission.
 
 // Star burst particle effect settings (on item collection)
 const STAR_BURST_LIFESPAN = 2000;   // Lifespan (ms) for star particles.
 const STAR_BURST_QUANTITY = 50;     // Number of star particles in burst.
-const STAR_BURST_SCALE    = 1.0;    // Starting scale for star particles (simplified).
+const STAR_BURST_SCALE    = 1.0;    // Starting scale for star particles.
 const STAR_BURST_SPEED    = { min: 100, max: 400 }; // Speed range for radial burst.
+
+// Score/HUD settings
+const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
+const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; // Fancy gaming font.
+const SCORE_FONT_COLOR    = "#ffffff";             // White color.
+const SCORE_X             = 360 / 2;               // Centered horizontally (static for now).
+const SCORE_Y             = 10;                    // 10px from top.
 
 // === GAME CONFIGURATION ===
 const config = {
@@ -77,14 +84,12 @@ let score = 0;
 
 const game = new Phaser.Game(config);
 
-// Helper: Spawns an empty sprite (collectible item) on a platform using a random texture 
-// and sets up its idle tween.
 function spawnEmptyOnPlatform(platform, scene) {
   console.log("Spawning empty sprite on platform at (" + platform.x + ", " + platform.y + ")");
-  let platformTop = platform.y - (platform.displayHeight / 2);
+  let platformTop = platform.y - platform.displayHeight / 2;
   let itemKey = Phaser.Utils.Array.GetRandom(ITEM_NAMES);
   let emptySprite = scene.add.sprite(platform.x, platformTop, itemKey);
-  emptySprite.setOrigin(0.5, 1); // Bottom center
+  emptySprite.setOrigin(0.5, 1);
   
   let texture = scene.textures.get(itemKey).getSourceImage();
   let originalWidth = texture.width;
@@ -176,10 +181,9 @@ function create() {
     });
   }
   
-  platforms = this.physics.add.group({ runChildUpdate: true });
-  // Initial platform spawning with consistent 250px spacing
+  platforms = this.physics.add.group();
   let platformY = config.height - 20;
-  while (platformY >= -PLATFORM_SPACING * 8) { // ~2000px above screen for coverage
+  while (platformY >= -config.height) { // Initial platforms up to 1280px above screen
     let x = Phaser.Math.Between(20, config.width - 20);
     let plat = platforms.create(x, platformY, 'platform');
     plat.displayWidth = plat.width * PLATFORM_SCALE_X;
@@ -215,7 +219,7 @@ function create() {
   });
   
   score = 0;
-  scoreText = this.add.text(config.width / 2, SCORE_Y, "TORI: " + score, { font: SCORE_FONT_SIZE + "px " + SCORE_FONT_FAMILY, fill: SCORE_FONT_COLOR });
+  scoreText = this.add.text(SCORE_X, SCORE_Y, "TORI: " + score, { font: SCORE_FONT_SIZE + "px " + SCORE_FONT_FAMILY, fill: SCORE_FONT_COLOR });
   scoreText.setOrigin(0.5, 0);
   
   this.physics.add.overlap(player, empties, (player, emptySprite) => {
@@ -293,7 +297,7 @@ function update() {
     platforms.children.iterate((platform) => {
       platform.y += delta;
       if (platform.y > config.height + PLATFORM_SPACING) {
-        platform.y = highestY - PLATFORM_SPACING - Phaser.Math.Between(0, PLATFORM_SPACING / 2); // Random offset for natural feel
+        platform.y = highestY - PLATFORM_SPACING - Phaser.Math.Between(0, PLATFORM_SPACING / 2);
         platform.x = Phaser.Math.Between(20, config.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
@@ -363,7 +367,8 @@ function collectEmpty(player, emptySprite, scene) {
     lifespan: STAR_BURST_LIFESPAN,
     quantity: STAR_BURST_QUANTITY,
     on: false,
-    emitZone: { type: 'random', source: new Phaser.Geom.Circle(centerX, centerY, 10) },
+    x: centerX,
+    y: centerY,
     tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF])
   });
   starParticles.setPosition(centerX, centerY);
