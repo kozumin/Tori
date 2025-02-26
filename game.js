@@ -37,36 +37,34 @@ const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false
 const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
 const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
 
-// Particle effect settings (for jump trail)
+// Jump particle effect settings (trail)
 const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles.
 const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle.
 const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles.
 const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from player's center to bottom edge.
 const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission.
 
-// Star particle effect settings (burst on item collection)
-const STARS_LIFESPAN      = 1000;   // Lifespan (ms) for star particles.
-const STARS_QUANTITY      = 20;     // Number of star particles in the burst.
-const STARS_SCALE_START   = 0.5;    // Starting scale of star particles.
-const STARS_SCALE_END     = 0;      // Ending scale of star particles.
-const STARS_SPEED         = { min: -200, max: 200 }; // Speed range for star particles.
-const STARS_TINTS         = [0xff0000, 0x00ff00, 0x0000ff, 0xffff00, 0xff00ff]; // Colors for stars.
+// Star burst particle effect settings (on item collection)
+const STAR_BURST_LIFESPAN = 1000;   // Lifespan (ms) for star particles.
+const STAR_BURST_QUANTITY = 10;     // Number of star particles in burst.
+const STAR_BURST_SCALE    = 0.5;    // Starting scale for star particles.
+const STAR_BURST_SPEED    = { min: -200, max: 200 }; // Speed range for star particles.
 
 // Score/HUD settings
-const SCORE_FONT_SIZE     = 32;                    
-const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; 
-const SCORE_FONT_COLOR    = "#ffffff";             
-const SCORE_X             = 360 / 2;               
-const SCORE_Y             = 10;                    
+const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
+const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; // Fancy gaming font.
+const SCORE_FONT_COLOR    = "#ffffff";             // White color.
+const SCORE_X             = 360 / 2;               // Centered horizontally (static for now).
+const SCORE_Y             = 10;                    // 10px from top.
 
 // === GAME CONFIGURATION ===
 const config = {
   type: Phaser.AUTO,
-  width: 360,  
-  height: 640, 
+  width: 360,  // Fixed base width
+  height: 640, // Fixed base height
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    mode: Phaser.Scale.FIT, // Fit within the screen, maintaining aspect ratio
+    autoCenter: Phaser.Scale.CENTER_BOTH // Center both horizontally and vertically
   },
   physics: {
     default: 'arcade',
@@ -96,7 +94,7 @@ function spawnEmptyOnPlatform(platform, scene) {
   let emptySprite = scene.add.sprite(platform.x, platformTop, itemKey);
   emptySprite.setOrigin(0.5, 1); // Align bottom edge.
   
-  // Scale based on the texture's original dimensions while preserving aspect ratio.
+  // Set display size based on the config height while preserving aspect ratio.
   let texture = scene.textures.get(itemKey).getSourceImage();
   let originalWidth = texture.width;
   let originalHeight = texture.height;
@@ -125,7 +123,7 @@ function spawnEmptyOnPlatform(platform, scene) {
 
 function preload() {
   console.log("Preloading assets...");
-  console.log("Phaser version:", Phaser.VERSION);
+  console.log("Phaser version:", Phaser.VERSION); // Verify version
   this.load.image('background', 'assets/background.png');
   this.load.image('platform', 'assets/platform.png');
   if (PLAYER_ANIMATED) {
@@ -136,10 +134,8 @@ function preload() {
   } else {
     this.load.image('player', 'assets/player.png');
   }
-  // Load trail particle texture (an image, not a spritesheet)
   this.load.image('particle', 'assets/particle.png');
-  // Load the stars texture for the burst effect.
-  this.load.image('stars', 'assets/stars.png');
+  this.load.image('stars', 'assets/stars.png'); // Load stars texture for burst
   this.load.on('filecomplete-image-particle', () => {
     console.log("Particle texture loaded successfully!");
   });
@@ -163,8 +159,8 @@ function preload() {
 function create() {
   console.log("Creating scene...");
   let bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
-  bg.displayWidth = config.width;
-  bg.displayHeight = config.height;
+  bg.displayWidth = config.width;  // Use base width
+  bg.displayHeight = config.height; // Use base height
   
   if (PLAYER_ANIMATED) {
     this.anims.create({
@@ -188,9 +184,11 @@ function create() {
   }
   
   platforms = this.physics.add.group();
-  for (let y = config.height - 20; y >= 0; y -= PLATFORM_SPACING) {
+  // Ensure consistent spacing by starting at bottom and decreasing by PLATFORM_SPACING
+  let platformY = config.height - 20;
+  while (platformY >= -PLATFORM_SPACING) { // Spawn platforms above screen too
     let x = Phaser.Math.Between(20, config.width - 20);
-    let plat = platforms.create(x, y, 'platform');
+    let plat = platforms.create(x, platformY, 'platform');
     plat.displayWidth = plat.width * PLATFORM_SCALE_X;
     plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
     plat.body.setImmovable(true);
@@ -201,6 +199,7 @@ function create() {
     plat.body.setCollideWorldBounds(true);
     plat.body.setBounce(1, 0);
     plat.emptySprite = null;
+    platformY -= PLATFORM_SPACING; // Consistent spacing
   }
   
   if (PLAYER_ANIMATED) {
@@ -254,18 +253,16 @@ function create() {
     let duration = pointer.upTime - pointerDownStart.time;
     console.log("Pointer up after " + duration + " ms, dx: " + dx + ", dy: " + dy);
     if (!isDragging && duration < 300 && Math.abs(dx) < 15 && Math.abs(dy) < 15) {
-      // Jump towards the finger position
       let angle = Phaser.Math.Angle.Between(player.x, player.y, pointer.x, pointer.y);
       let velocityX = Math.cos(angle) * PLAYER_SPEED;
       let velocityY = Math.sin(angle) * PLAYER_SPEED;
-      // Ensure upward jump has sufficient force
       velocityY = Math.min(velocityY, PLAYER_JUMP_HEIGHT);
       player.setVelocity(velocityX, velocityY);
       console.log("Player jump triggered towards (" + pointer.x + ", " + pointer.y + ")");
       if (PLAYER_ANIMATED) {
         player.anims.play('jump', true);
       }
-      // Trail particle emitter (Phaser 3.88.2 style)
+      // Jump trail particles (Phaser 3.88.2 compatible)
       particles = this.add.particles('particle', {
         frame: { frames: ['particle'], cycle: true },
         scale: { start: PARTICLE_SCALE, end: 0 },
@@ -274,7 +271,7 @@ function create() {
         lifespan: TRAIL_PARTICLE_LIFESPAN,
         frequency: 10,
         quantity: 5,
-        on: false
+        emitting: false // Start off
       });
       particles.startFollow(player, 0, TRAIL_PARTICLE_OFFSET_Y);
       particles.start();
@@ -298,22 +295,10 @@ function update() {
   if (player.y < scrollThreshold) {
     let delta = scrollThreshold - player.y;
     player.y = scrollThreshold;
-    // Move all platforms down by delta
     platforms.children.iterate((platform) => {
       platform.y += delta;
-    });
-    // Determine the top-most platform's y-position
-    let topY = Infinity;
-    platforms.children.iterate((platform) => {
-      if (platform.y < topY) {
-        topY = platform.y;
-      }
-    });
-    // Reposition platforms that have gone off the bottom using fixed spacing
-    platforms.children.iterate((platform) => {
-      if (platform.y > config.height) {
-        topY -= PLATFORM_SPACING;
-        platform.y = topY;
+      if (platform.y > config.height + PLATFORM_SPACING) { // Ensure full spacing when recycling
+        platform.y = -PLATFORM_SPACING; // Start above screen with consistent spacing
         platform.x = Phaser.Math.Between(20, config.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
@@ -369,6 +354,24 @@ function collectEmpty(player, emptySprite) {
   console.log("Collecting empty sprite at (" + emptySprite.x + ", " + emptySprite.y + ")");
   emptySprite.scene.tweens.killTweensOf(emptySprite);
   emptySprite.body.enable = false;
+  
+  // Star burst particles (Phaser 3.88.2 compatible)
+  let starParticles = this.add.particles('stars', {
+    frame: { frames: ['stars'], cycle: true },
+    scale: { start: STAR_BURST_SCALE, end: 0 },
+    blendMode: 'ADD',
+    speed: STAR_BURST_SPEED,
+    lifespan: STAR_BURST_LIFESPAN,
+    quantity: STAR_BURST_QUANTITY,
+    emitting: true, // Emit once immediately
+    x: emptySprite.x,
+    y: emptySprite.y,
+    tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random colors: red, green, blue, yellow, purple
+  });
+  this.time.delayedCall(STAR_BURST_LIFESPAN, () => {
+    starParticles.destroy(); // Destroy after last particle dies
+  });
+  
   emptySprite.scene.tweens.add({
     targets: emptySprite,
     x: player.x,
@@ -380,25 +383,7 @@ function collectEmpty(player, emptySprite) {
     onStart: () => { console.log("Collection tween started for empty sprite."); },
     onComplete: function() {
       console.log("Empty sprite collection tween complete.");
-      // Store scene reference before destroying sprite.
-      let sceneRef = emptySprite.scene;
       emptySprite.destroy();
-      // Star burst emitter (Phaser 3.88.2 style)
-      let starParticles = sceneRef.add.particles('stars', {
-         frame: { frames: ['stars'], cycle: true },
-         scale: { start: STARS_SCALE_START, end: STARS_SCALE_END },
-         blendMode: 'ADD',
-         speed: STARS_SPEED,
-         lifespan: STARS_LIFESPAN,
-         frequency: 0,
-         quantity: STARS_QUANTITY,
-         on: false,
-         tint: STARS_TINTS
-      });
-      starParticles.explode(STARS_QUANTITY, player.x, player.y);
-      sceneRef.time.delayedCall(STARS_LIFESPAN + 100, () => {
-         starParticles.destroy();
-      });
     }
   });
   if (emptySprite.parentPlatform) {
