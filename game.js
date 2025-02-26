@@ -7,7 +7,7 @@ const PLATFORM_MIN_SPEED  = 5;      // Minimum horizontal speed.
 const PLATFORM_MAX_SPEED  = 90;     // Maximum horizontal speed.
 
 // Empty sprite settings
-const TOTAL_EMPTY_SPRITES = 15;     // Total number of empty sprites.
+const TOTAL_EMPTY_SPRITES = 15;     // Total number of empty sprites initially.
 const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floats up.
 const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween.
 const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween;
@@ -47,15 +47,8 @@ const TRAIL_PARTICLE_EMIT_DURATION = 200;         // Duration (ms) for emission.
 // Star burst particle effect settings (on item collection)
 const STAR_BURST_LIFESPAN = 2000;   // Lifespan (ms) for star particles.
 const STAR_BURST_QUANTITY = 50;     // Number of star particles in burst.
-const STAR_BURST_SCALE    = 2.0;    // Starting scale for star particles.
+const STAR_BURST_SCALE    = 1.0;    // Starting scale for star particles (simplified).
 const STAR_BURST_SPEED    = { min: 100, max: 400 }; // Speed range for radial burst.
-
-// Score/HUD settings
-const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
-const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; // Fancy gaming font.
-const SCORE_FONT_COLOR    = "#ffffff";             // White color.
-const SCORE_X             = 360 / 2;               // Centered horizontally (static for now).
-const SCORE_Y             = 10;                    // 10px from top.
 
 // === GAME CONFIGURATION ===
 const config = {
@@ -121,7 +114,7 @@ function spawnEmptyOnPlatform(platform, scene) {
 
 function preload() {
   console.log("Preloading assets...");
-  console.log("Phaser version:", Phaser.VERSION); // Verify version
+  console.log("Phaser version:", Phaser.VERSION);
   this.load.image('background', 'assets/background.png');
   this.load.image('platform', 'assets/platform.png');
   if (PLAYER_ANIMATED) {
@@ -183,10 +176,10 @@ function create() {
     });
   }
   
-  platforms = this.physics.add.group();
+  platforms = this.physics.add.group({ runChildUpdate: true });
   // Initial platform spawning with consistent 250px spacing
   let platformY = config.height - 20;
-  while (platformY >= -PLATFORM_SPACING * 4) { // ~1000px above screen for initial coverage
+  while (platformY >= -PLATFORM_SPACING * 8) { // ~2000px above screen for coverage
     let x = Phaser.Math.Between(20, config.width - 20);
     let plat = platforms.create(x, platformY, 'platform');
     plat.displayWidth = plat.width * PLATFORM_SCALE_X;
@@ -293,15 +286,14 @@ function update() {
   if (player.y < scrollThreshold) {
     let delta = scrollThreshold - player.y;
     player.y = scrollThreshold;
-    let highestY = 0; // Track highest platform position
+    let highestY = config.height;
     platforms.getChildren().forEach((platform) => {
       if (platform.y < highestY) highestY = platform.y;
     });
     platforms.children.iterate((platform) => {
       platform.y += delta;
-      // Recycle platforms that go below the screen
       if (platform.y > config.height + PLATFORM_SPACING) {
-        platform.y = highestY - PLATFORM_SPACING; // Place above highest platform
+        platform.y = highestY - PLATFORM_SPACING - Phaser.Math.Between(0, PLATFORM_SPACING / 2); // Random offset for natural feel
         platform.x = Phaser.Math.Between(20, config.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
@@ -310,7 +302,7 @@ function update() {
           platform.emptySprite.destroy();
           platform.emptySprite = null;
         }
-        if (Phaser.Math.Between(0, 1)) { // 50% chance to spawn an item
+        if (Phaser.Math.Between(0, 1)) {
           spawnEmptyOnPlatform(platform, this);
         }
       }
@@ -360,10 +352,8 @@ function collectEmpty(player, emptySprite, scene) {
   emptySprite.scene.tweens.killTweensOf(emptySprite);
   emptySprite.body.enable = false;
   
-  // Calculate center of the collected sprite
   let centerX = emptySprite.x;
-  let centerY = emptySprite.y - (emptySprite.displayHeight / 2); // Center vertically
-  
+  let centerY = emptySprite.y - (emptySprite.displayHeight / 2);
   console.log("Creating star burst emitter at (" + centerX + ", " + centerY + ")");
   let starParticles = scene.add.particles(0, 0, 'stars', {
     scale: { start: STAR_BURST_SCALE, end: 0 },
@@ -373,11 +363,10 @@ function collectEmpty(player, emptySprite, scene) {
     lifespan: STAR_BURST_LIFESPAN,
     quantity: STAR_BURST_QUANTITY,
     on: false,
-    x: centerX,
-    y: centerY,
+    emitZone: { type: 'random', source: new Phaser.Geom.Circle(centerX, centerY, 10) },
     tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF])
   });
-  starParticles.setPosition(centerX, centerY); // Ensure center position
+  starParticles.setPosition(centerX, centerY);
   console.log("Starting star burst emission");
   starParticles.start();
   scene.time.delayedCall(300, () => {
