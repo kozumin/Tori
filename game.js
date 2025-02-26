@@ -226,7 +226,7 @@ function create() {
   scoreText.setOrigin(0.5, 0);
   
   this.physics.add.overlap(player, empties, (player, emptySprite) => {
-    collectEmpty(player, emptySprite);
+    collectEmpty(player, emptySprite, this);
   }, null, this);
   
   this.input.on('pointerdown', (pointer) => {
@@ -349,14 +349,14 @@ function update() {
   }
 }
 
-function collectEmpty(player, emptySprite) {
+function collectEmpty(player, emptySprite, scene) {
   if (!emptySprite.active) return;
   console.log("Collecting empty sprite at (" + emptySprite.x + ", " + emptySprite.y + ")");
   emptySprite.scene.tweens.killTweensOf(emptySprite);
   emptySprite.body.enable = false;
   
   // Star burst particles (Phaser 3.88.2 compatible)
-  let starParticles = this.add.particles('stars', {
+  let starParticles = scene.add.particles('stars', {
     frame: { frames: ['stars'], cycle: true },
     scale: { start: STAR_BURST_SCALE, end: 0 },
     blendMode: 'ADD',
@@ -368,7 +368,7 @@ function collectEmpty(player, emptySprite) {
     y: emptySprite.y,
     tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random colors: red, green, blue, yellow, purple
   });
-  this.time.delayedCall(STAR_BURST_LIFESPAN, () => {
+  scene.time.delayedCall(STAR_BURST_LIFESPAN, () => {
     starParticles.destroy(); // Destroy after last particle dies
   });
   
