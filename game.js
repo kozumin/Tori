@@ -45,10 +45,10 @@ const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from playe
 const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission.
 
 // Star burst particle effect settings (on item collection)
-const STAR_BURST_LIFESPAN = 1000;   // Lifespan (ms) for star particles.
-const STAR_BURST_QUANTITY = 10;     // Number of star particles in burst.
-const STAR_BURST_SCALE    = 0.5;    // Starting scale for star particles.
-const STAR_BURST_SPEED    = { min: 50, max: 200 }; // Speed range for radial burst
+const STAR_BURST_LIFESPAN = 1500;   // Lifespan (ms) for star particles (increased for visibility).
+const STAR_BURST_QUANTITY = 20;     // Number of star particles in burst (increased for visibility).
+const STAR_BURST_SCALE    = 1.0;    // Starting scale for star particles (increased for visibility).
+const STAR_BURST_SPEED    = { min: 100, max: 300 }; // Speed range for radial burst (increased for wider area).
 
 // Score/HUD settings
 const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
@@ -187,9 +187,9 @@ function create() {
   }
   
   platforms = this.physics.add.group();
-  // Initial platform spawning with consistent 250px spacing
+  // Initial platform spawning with consistent 250px spacing, more platforms
   let platformY = config.height - 20;
-  while (platformY >= -PLATFORM_SPACING) {
+  while (platformY >= -config.height) { // Spawn platforms above screen to cover initial scroll
     let x = Phaser.Math.Between(20, config.width - 20);
     let plat = platforms.create(x, platformY, 'platform');
     plat.displayWidth = plat.width * PLATFORM_SCALE_X;
@@ -297,11 +297,16 @@ function update() {
   if (player.y < scrollThreshold) {
     let delta = scrollThreshold - player.y;
     player.y = scrollThreshold;
+    // Find the highest platform to determine spawn point
+    let highestY = config.height;
+    platforms.getChildren().forEach((platform) => {
+      if (platform.y < highestY) highestY = platform.y;
+    });
     platforms.children.iterate((platform) => {
       platform.y += delta;
       // Continuous platform spawning with consistent 250px spacing
       if (platform.y > config.height + PLATFORM_SPACING) {
-        platform.y -= (Math.ceil((platform.y + PLATFORM_SPACING) / PLATFORM_SPACING) * PLATFORM_SPACING); // Move to top with spacing
+        platform.y = highestY - PLATFORM_SPACING; // Spawn above highest platform
         platform.x = Phaser.Math.Between(20, config.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
@@ -310,7 +315,7 @@ function update() {
           platform.emptySprite.destroy();
           platform.emptySprite = null;
         }
-        if (Phaser.Math.Between(0, 1)) { // Randomly spawn items on some platforms
+        if (Phaser.Math.Between(0, 1)) { // 50% chance to spawn an item
           spawnEmptyOnPlatform(platform, this);
         }
       }
@@ -374,10 +379,10 @@ function collectEmpty(player, emptySprite, scene) {
     y: emptySprite.y,
     tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random colors
   });
-  starParticles.setPosition(emptySprite.x, emptySprite.y); // Set initial position
+  starParticles.setPosition(emptySprite.x, emptySprite.y); // Ensure position
   console.log("Starting star burst emission");
-  starParticles.start(); // Trigger the one-time burst
-  scene.time.delayedCall(50, () => { // Short delay to allow burst, then stop
+  starParticles.start(); // Trigger the burst
+  scene.time.delayedCall(200, () => { // Increased duration for visibility
     starParticles.stop();
     console.log("Star burst emission stopped");
     scene.time.delayedCall(STAR_BURST_LIFESPAN, () => {
