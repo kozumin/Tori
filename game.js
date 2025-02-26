@@ -47,7 +47,7 @@ const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission
 // Star burst particle effect settings (on item collection)
 const STAR_BURST_LIFESPAN = 2000;   // Lifespan (ms) for star particles.
 const STAR_BURST_QUANTITY = 50;     // Number of star particles in burst.
-const STAR_BURST_SCALE    = 1.0;    // Starting scale for star particles.
+const STAR_BURST_SCALE    = 0.5;    // Starting scale for star particles (reduced to test pivot).
 const STAR_BURST_SPEED    = { min: 100, max: 400 }; // Speed range for radial burst.
 
 // Score/HUD settings
@@ -182,10 +182,9 @@ function create() {
   }
   
   platforms = this.physics.add.group();
-  let platformY = config.height - 20;
-  while (platformY >= -config.height) { // Initial platforms up to 1280px above screen
+  for (let y = config.height - 20; y >= -PLATFORM_SPACING * 2; y -= PLATFORM_SPACING) { // Extended to ~500px above
     let x = Phaser.Math.Between(20, config.width - 20);
-    let plat = platforms.create(x, platformY, 'platform');
+    let plat = platforms.create(x, y, 'platform');
     plat.displayWidth = plat.width * PLATFORM_SCALE_X;
     plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
     plat.body.setImmovable(true);
@@ -196,7 +195,6 @@ function create() {
     plat.body.setCollideWorldBounds(true);
     plat.body.setBounce(1, 0);
     plat.emptySprite = null;
-    platformY -= PLATFORM_SPACING;
   }
   
   if (PLAYER_ANIMATED) {
@@ -356,9 +354,9 @@ function collectEmpty(player, emptySprite, scene) {
   emptySprite.scene.tweens.killTweensOf(emptySprite);
   emptySprite.body.enable = false;
   
-  let centerX = emptySprite.x;
-  let centerY = emptySprite.y - (emptySprite.displayHeight / 2);
-  console.log("Creating star burst emitter at (" + centerX + ", " + centerY + ")");
+  let emitterCenterX = emptySprite.x;
+  let emitterCenterY = emptySprite.y - (emptySprite.displayHeight / 2);
+  console.log("Creating star burst emitter at (" + emitterCenterX + ", " + emitterCenterY + ")");
   let starParticles = scene.add.particles(0, 0, 'stars', {
     scale: { start: STAR_BURST_SCALE, end: 0 },
     blendMode: 'ADD',
@@ -367,11 +365,9 @@ function collectEmpty(player, emptySprite, scene) {
     lifespan: STAR_BURST_LIFESPAN,
     quantity: STAR_BURST_QUANTITY,
     on: false,
-    x: centerX,
-    y: centerY,
     tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF])
   });
-  starParticles.setPosition(centerX, centerY);
+  starParticles.setPosition(emitterCenterX, emitterCenterY);
   console.log("Starting star burst emission");
   starParticles.start();
   scene.time.delayedCall(300, () => {
