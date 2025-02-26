@@ -45,10 +45,10 @@ const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from playe
 const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission.
 
 // Star burst particle effect settings (on item collection)
-const STAR_BURST_LIFESPAN = 1500;   // Lifespan (ms) for star particles (increased for visibility).
-const STAR_BURST_QUANTITY = 20;     // Number of star particles in burst (increased for visibility).
-const STAR_BURST_SCALE    = 1.0;    // Starting scale for star particles (increased for visibility).
-const STAR_BURST_SPEED    = { min: 100, max: 300 }; // Speed range for radial burst (increased for wider area).
+const STAR_BURST_LIFESPAN = 2000;   // Lifespan (ms) for star particles (increased for visibility).
+const STAR_BURST_QUANTITY = 50;     // Number of star particles in burst (increased for visibility).
+const STAR_BURST_SCALE    = 2.0;    // Starting scale for star particles (increased for visibility).
+const STAR_BURST_SPEED    = { min: 100, max: 400 }; // Speed range for radial burst (increased for wider area).
 
 // Score/HUD settings
 const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
@@ -89,12 +89,10 @@ const game = new Phaser.Game(config);
 function spawnEmptyOnPlatform(platform, scene) {
   console.log("Spawning empty sprite on platform at (" + platform.x + ", " + platform.y + ")");
   let platformTop = platform.y - platform.displayHeight / 2;
-  // Choose a random item from the list
   let itemKey = Phaser.Utils.Array.GetRandom(ITEM_NAMES);
   let emptySprite = scene.add.sprite(platform.x, platformTop, itemKey);
   emptySprite.setOrigin(0.5, 1); // Align bottom edge.
   
-  // Set display size based on the config height while preserving aspect ratio.
   let texture = scene.textures.get(itemKey).getSourceImage();
   let originalWidth = texture.width;
   let originalHeight = texture.height;
@@ -162,8 +160,8 @@ function preload() {
 function create() {
   console.log("Creating scene...");
   let bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
-  bg.displayWidth = config.width;  // Use base width
-  bg.displayHeight = config.height; // Use base height
+  bg.displayWidth = config.width;
+  bg.displayHeight = config.height;
   
   if (PLAYER_ANIMATED) {
     this.anims.create({
@@ -189,7 +187,7 @@ function create() {
   platforms = this.physics.add.group();
   // Initial platform spawning with consistent 250px spacing, more platforms
   let platformY = config.height - 20;
-  while (platformY >= -config.height) { // Spawn platforms above screen to cover initial scroll
+  while (platformY >= -config.height - PLATFORM_SPACING) { // Extended above screen
     let x = Phaser.Math.Between(20, config.width - 20);
     let plat = platforms.create(x, platformY, 'platform');
     plat.displayWidth = plat.width * PLATFORM_SCALE_X;
@@ -265,7 +263,6 @@ function create() {
       if (PLAYER_ANIMATED) {
         player.anims.play('jump', true);
       }
-      // Jump trail particles (Phaser 3.88.2 compatible, matching working example)
       particles = this.add.particles(0, 0, 'particle', {
         scale: { start: PARTICLE_SCALE, end: 0 },
         blendMode: 'ADD',
@@ -273,7 +270,7 @@ function create() {
         lifespan: TRAIL_PARTICLE_LIFESPAN,
         frequency: 10,
         quantity: 5,
-        on: false // Start off, as per working example
+        on: false
       });
       particles.startFollow(player, 0, TRAIL_PARTICLE_OFFSET_Y);
       particles.start();
@@ -297,14 +294,12 @@ function update() {
   if (player.y < scrollThreshold) {
     let delta = scrollThreshold - player.y;
     player.y = scrollThreshold;
-    // Find the highest platform to determine spawn point
     let highestY = config.height;
     platforms.getChildren().forEach((platform) => {
       if (platform.y < highestY) highestY = platform.y;
     });
     platforms.children.iterate((platform) => {
       platform.y += delta;
-      // Continuous platform spawning with consistent 250px spacing
       if (platform.y > config.height + PLATFORM_SPACING) {
         platform.y = highestY - PLATFORM_SPACING; // Spawn above highest platform
         platform.x = Phaser.Math.Between(20, config.width - 20);
@@ -365,28 +360,27 @@ function collectEmpty(player, emptySprite, scene) {
   emptySprite.scene.tweens.killTweensOf(emptySprite);
   emptySprite.body.enable = false;
   
-  // Star burst particles (Phaser 3.88.2 compatible, matching jump trail technique)
   console.log("Creating star burst emitter at (" + emptySprite.x + ", " + emptySprite.y + ")");
   let starParticles = scene.add.particles(0, 0, 'stars', {
     scale: { start: STAR_BURST_SCALE, end: 0 },
     blendMode: 'ADD',
     speed: STAR_BURST_SPEED,
-    radial: true, // Ensures radial emission around the point
+    radial: true,
     lifespan: STAR_BURST_LIFESPAN,
     quantity: STAR_BURST_QUANTITY,
-    on: false, // Start off, then trigger manually
+    on: false,
     x: emptySprite.x,
     y: emptySprite.y,
-    tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random colors
+    tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF])
   });
-  starParticles.setPosition(emptySprite.x, emptySprite.y); // Ensure position
+  starParticles.setPosition(emptySprite.x, emptySprite.y);
   console.log("Starting star burst emission");
-  starParticles.start(); // Trigger the burst
-  scene.time.delayedCall(200, () => { // Increased duration for visibility
+  starParticles.start();
+  scene.time.delayedCall(300, () => {
     starParticles.stop();
     console.log("Star burst emission stopped");
     scene.time.delayedCall(STAR_BURST_LIFESPAN, () => {
-      starParticles.destroy(); // Destroy emitter after particles die
+      starParticles.destroy();
       console.log("Star burst emitter destroyed");
     });
   });
