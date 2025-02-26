@@ -15,17 +15,17 @@ const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween.
 // New configuration for collectible items
 const ITEM_NAMES = ['icecream', 'banana', 'broccoli', 'carrot', 'cherry', 'kitty', 'mermais', 'princess', 'strawberry', 'unicorn', 'watermelon'];
 const EMPTY_SPRITE_CONFIG = {
-  icecream:   { height: 128 },
-  banana:     { height: 128 },
-  broccoli:   { height: 128 },
-  carrot:     { height: 128 },
-  cherry:     { height: 128 },
-  kitty:      { height: 128 },
-  mermais:    { height: 128 },
-  princess:   { height: 128 },
-  strawberry: { height: 128 },
-  unicorn:    { height: 128 },
-  watermelon: { height: 128 }
+  icecream:   { height: 64 },
+  banana:     { height: 64 },
+  broccoli:   { height: 64 },
+  carrot:     { height: 64 },
+  cherry:     { height: 64 },
+  kitty:      { height: 64 },
+  mermais:    { height: 64 },
+  princess:   { height: 64 },
+  strawberry: { height: 64 },
+  unicorn:    { height: 64 },
+  watermelon: { height: 64 }
 };
 
 // Player settings
