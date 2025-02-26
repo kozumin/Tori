@@ -37,7 +37,7 @@ const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false
 const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
 const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
 
-// Particle effect settings
+// Jump particle effect settings (trail)
 const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles.
 const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle.
 const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles.
@@ -48,7 +48,7 @@ const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission
 const STAR_BURST_LIFESPAN = 1000;   // Lifespan (ms) for star particles.
 const STAR_BURST_QUANTITY = 10;     // Number of star particles in burst.
 const STAR_BURST_SCALE    = 0.5;    // Starting scale for star particles.
-const STAR_BURST_SPEED    = { min: -200, max: 200 }; // Speed range for star particles.
+const STAR_BURST_SPEED    = { min: 50, max: 200 }; // Speed range for radial burst (adjusted for visibility)
 
 // Score/HUD settings
 const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
@@ -354,21 +354,22 @@ function collectEmpty(player, emptySprite, scene) {
   emptySprite.scene.tweens.killTweensOf(emptySprite);
   emptySprite.body.enable = false;
   
-  // Star burst particles (Phaser 3.88.2 compatible, matching working example)
+  // Star burst particles (Phaser 3.88.2 compatible, matching jump trail technique)
   let starParticles = scene.add.particles(0, 0, 'stars', {
     scale: { start: STAR_BURST_SCALE, end: 0 },
     blendMode: 'ADD',
     speed: STAR_BURST_SPEED,
+    radial: true, // Ensures radial emission around the point
     lifespan: STAR_BURST_LIFESPAN,
     quantity: STAR_BURST_QUANTITY,
-    on: true , // Emit immediately for a burst
+    on: true, // Emit immediately for a one-time burst
     x: emptySprite.x,
     y: emptySprite.y,
     tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random colors
   });
   starParticles.setPosition(emptySprite.x, emptySprite.y); // Ensure position
   scene.time.delayedCall(STAR_BURST_LIFESPAN, () => {
-    starParticles.destroy(); // Destroy after last particle dies
+    starParticles.destroy(); // Destroy emitter after particles die
   });
   
   emptySprite.scene.tweens.add({
