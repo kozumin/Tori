@@ -184,14 +184,15 @@ function create() {
   platforms = this.physics.add.group();
   let usedXPositions = []; // Track x-positions to avoid overlap
   for (let y = config.height - 20; y >= -PLATFORM_SPACING * 2; y -= PLATFORM_SPACING) {
+    let plat = platforms.create(0, y, 'platform'); // Create platform first to access displayWidth
+    plat.displayWidth = plat.width * PLATFORM_SCALE_X;
+    plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
     let x;
     do {
       x = Phaser.Math.Between(20, config.width - 20);
-    } while (usedXPositions.some(pos => Math.abs(pos - x) < plat.displayWidth)); // Ensure no overlap
+    } while (usedXPositions.some(pos => Math.abs(pos - x) < plat.displayWidth)); // Check after plat is defined
     usedXPositions.push(x);
-    let plat = platforms.create(x, y, 'platform');
-    plat.displayWidth = plat.width * PLATFORM_SCALE_X;
-    plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
+    plat.x = x; // Set x-position after creation
     plat.body.setImmovable(true);
     plat.body.allowGravity = false;
     let vx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
@@ -293,7 +294,7 @@ function update() {
   if (player.y < scrollThreshold) {
     let delta = scrollThreshold - player.y;
     player.y = scrollThreshold;
-    let highestY = config.height;
+    let highestY = config.height; // Default to bottom if no platforms
     platforms.getChildren().forEach((platform) => {
       if (platform.y < highestY) highestY = platform.y;
     });
