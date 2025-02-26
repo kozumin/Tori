@@ -214,7 +214,7 @@ function create() {
   
   this.physics.add.collider(player, platforms);
   
-  empties = this.physics.add.group();
+  empties = this.add.group();
   platforms.getChildren().forEach((plat) => {
     if (empties.getLength() < TOTAL_EMPTY_SPRITES) {
       spawnEmptyOnPlatform(plat, this);
@@ -262,7 +262,7 @@ function create() {
       if (PLAYER_ANIMATED) {
         player.anims.play('jump', true);
       }
-      // Jump trail particles (Phaser 3.88.2 compatible)
+      // Jump trail particles (Phaser 3.88.2 compatible, matching working example)
       particles = this.add.particles('particle', {
         scale: { start: PARTICLE_SCALE, end: 0 },
         blendMode: 'ADD',
@@ -270,7 +270,7 @@ function create() {
         lifespan: TRAIL_PARTICLE_LIFESPAN,
         frequency: 10,
         quantity: 5,
-        emitting: false // Start off
+        emitting: false
       });
       particles.startFollow(player, 0, TRAIL_PARTICLE_OFFSET_Y);
       particles.start();
@@ -354,14 +354,14 @@ function collectEmpty(player, emptySprite, scene) {
   emptySprite.scene.tweens.killTweensOf(emptySprite);
   emptySprite.body.enable = false;
   
-  // Star burst particles (Phaser 3.88.2 compatible)
+  // Star burst particles (Phaser 3.88.2 compatible, matching working example)
   let starParticles = scene.add.particles('stars', {
     scale: { start: STAR_BURST_SCALE, end: 0 },
     blendMode: 'ADD',
     speed: STAR_BURST_SPEED,
     lifespan: STAR_BURST_LIFESPAN,
     quantity: STAR_BURST_QUANTITY,
-    emitting: true, // Emit once immediately
+    emitting: true,
     x: emptySprite.x,
     y: emptySprite.y,
     tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random colors: red, green, blue, yellow, purple
