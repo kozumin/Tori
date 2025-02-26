@@ -182,8 +182,13 @@ function create() {
   }
   
   platforms = this.physics.add.group();
+  let usedXPositions = []; // Track x-positions to avoid overlap
   for (let y = config.height - 20; y >= -PLATFORM_SPACING * 2; y -= PLATFORM_SPACING) {
-    let x = Phaser.Math.Between(20, config.width - 20);
+    let x;
+    do {
+      x = Phaser.Math.Between(20, config.width - 20);
+    } while (usedXPositions.some(pos => Math.abs(pos - x) < plat.displayWidth)); // Ensure no overlap
+    usedXPositions.push(x);
     let plat = platforms.create(x, y, 'platform');
     plat.displayWidth = plat.width * PLATFORM_SCALE_X;
     plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
@@ -365,7 +370,7 @@ function collectEmpty(player, emptySprite, scene) {
     lifespan: STAR_BURST_LIFESPAN,
     quantity: STAR_BURST_QUANTITY,
     on: false,
-    tint: () => Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random color per particle
+    tint: () => Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF])
   });
   starParticles.setPosition(emitterCenterX, emitterCenterY);
   console.log("Starting star burst emission");
