@@ -12,29 +12,21 @@ const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floa
 const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween.
 const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween.
 
-// Item-specific sizes
-const ICECREAM_WIDTH      = 64;     // Display width for icecream.
-const ICECREAM_HEIGHT     = 128;    // Display height for icecream.
-const BANANA_WIDTH        = 64;     // Display width for banana.
-const BANANA_HEIGHT       = 128;    // Display height for banana.
-const BROCCOLI_WIDTH      = 64;     // Display width for broccoli.
-const BROCCOLI_HEIGHT     = 128;    // Display height for broccoli.
-const CARROT_WIDTH        = 64;     // Display width for carrot.
-const CARROT_HEIGHT       = 128;    // Display height for carrot.
-const CHERRY_WIDTH        = 64;     // Display width for cherry.
-const CHERRY_HEIGHT       = 128;    // Display height for cherry.
-const KITTY_WIDTH         = 64;     // Display width for kitty.
-const KITTY_HEIGHT        = 128;    // Display height for kitty.
-const MERMAID_WIDTH       = 64;     // Display width for mermaid.
-const MERMAID_HEIGHT      = 128;    // Display height for mermaid.
-const PRINCESS_WIDTH      = 64;     // Display width for princess.
-const PRINCESS_HEIGHT     = 128;    // Display height for princess.
-const STRAWBERRY_WIDTH    = 64;     // Display width for strawberry.
-const STRAWBERRY_HEIGHT   = 128;    // Display height for strawberry.
-const UNICORN_WIDTH       = 64;     // Display width for unicorn.
-const UNICORN_HEIGHT      = 128;    // Display height for unicorn.
-const WATERMELON_WIDTH    = 64;     // Display width for watermelon.
-const WATERMELON_HEIGHT   = 128;    // Display height for watermelon.
+// New configuration for collectible items
+const ITEM_NAMES = ['icecream', 'banana', 'broccoli', 'carrot', 'cherry', 'kitty', 'mermais', 'princess', 'strawberry', 'unicorn', 'watermelon'];
+const EMPTY_SPRITE_CONFIG = {
+  icecream:   { height: 128 },
+  banana:     { height: 128 },
+  broccoli:   { height: 128 },
+  carrot:     { height: 128 },
+  cherry:     { height: 128 },
+  kitty:      { height: 128 },
+  mermais:    { height: 128 },
+  princess:   { height: 128 },
+  strawberry: { height: 128 },
+  unicorn:    { height: 128 },
+  watermelon: { height: 128 }
+};
 
 // Player settings
 const PLAYER_SPEED        = 450;    // Maximum horizontal speed.
@@ -86,27 +78,25 @@ let score = 0;
 
 const game = new Phaser.Game(config);
 
-// Helper: Spawns a random empty sprite on a platform with its specific size and animation.
+// Helper: Spawns an empty sprite (collectible item) on a platform using a random texture 
+// and sets up its idle tween.
 function spawnEmptyOnPlatform(platform, scene) {
   console.log("Spawning empty sprite on platform at (" + platform.x + ", " + platform.y + ")");
-  const items = [
-    { name: 'icecream', width: ICECREAM_WIDTH, height: ICECREAM_HEIGHT },
-    { name: 'banana', width: BANANA_WIDTH, height: BANANA_HEIGHT },
-    { name: 'broccoli', width: BROCCOLI_WIDTH, height: BROCCOLI_HEIGHT },
-    { name: 'carrot', width: CARROT_WIDTH, height: CARROT_HEIGHT },
-    { name: 'cherry', width: CHERRY_WIDTH, height: CHERRY_HEIGHT },
-    { name: 'kitty', width: KITTY_WIDTH, height: KITTY_HEIGHT },
-    { name: 'mermaid', width: MERMAID_WIDTH, height: MERMAID_HEIGHT },
-    { name: 'princess', width: PRINCESS_WIDTH, height: PRINCESS_HEIGHT },
-    { name: 'strawberry', width: STRAWBERRY_WIDTH, height: STRAWBERRY_HEIGHT },
-    { name: 'unicorn', width: UNICORN_WIDTH, height: UNICORN_HEIGHT },
-    { name: 'watermelon', width: WATERMELON_WIDTH, height: WATERMELON_HEIGHT }
-  ];
-  const item = items[Phaser.Math.Between(0, items.length - 1)]; // Randomly select an item
   let platformTop = platform.y - platform.displayHeight / 2;
-  let emptySprite = scene.add.sprite(platform.x, platformTop, item.name);
+  // Choose a random item from the list
+  let itemKey = Phaser.Utils.Array.GetRandom(ITEM_NAMES);
+  let emptySprite = scene.add.sprite(platform.x, platformTop, itemKey);
   emptySprite.setOrigin(0.5, 1); // Align bottom edge.
-  emptySprite.setDisplaySize(item.width, item.height); // Use item-specific size
+  
+  // Set display size based on the config height while preserving aspect ratio.
+  let texture = scene.textures.get(itemKey).getSourceImage();
+  let originalWidth = texture.width;
+  let originalHeight = texture.height;
+  let desiredHeight = EMPTY_SPRITE_CONFIG[itemKey].height;
+  let scaleFactor = desiredHeight / originalHeight;
+  let desiredWidth = originalWidth * scaleFactor;
+  emptySprite.setDisplaySize(desiredWidth, desiredHeight);
+  
   scene.physics.add.existing(emptySprite);
   emptySprite.body.setAllowGravity(false);
   emptySprite.body.setImmovable(true);
@@ -121,7 +111,7 @@ function spawnEmptyOnPlatform(platform, scene) {
     yoyo: true,
     repeat: -1,
     ease: EMPTY_IDLE_EASE,
-    onStart: () => { console.log("Idle tween started for " + item.name + " on platform at (" + platform.x + ", " + platform.y + ")"); }
+    onStart: () => { console.log("Idle tween started for empty sprite on platform at (" + platform.x + ", " + platform.y + ")"); }
   });
 }
 
@@ -145,14 +135,14 @@ function preload() {
   this.load.on('loaderror', (file) => {
     console.error("Error loading file:", file.key);
   });
-  // Preload all 11 item textures
+  // Load all collectible item textures
   this.load.image('icecream', 'assets/icecream.png');
   this.load.image('banana', 'assets/banana.png');
   this.load.image('broccoli', 'assets/broccoli.png');
   this.load.image('carrot', 'assets/carrot.png');
   this.load.image('cherry', 'assets/cherry.png');
   this.load.image('kitty', 'assets/kitty.png');
-  this.load.image('mermaid', 'assets/mermaid.png');
+  this.load.image('mermais', 'assets/mermais.png');
   this.load.image('princess', 'assets/princess.png');
   this.load.image('strawberry', 'assets/strawberry.png');
   this.load.image('unicorn', 'assets/unicorn.png');
@@ -253,17 +243,19 @@ function create() {
     let duration = pointer.upTime - pointerDownStart.time;
     console.log("Pointer up after " + duration + " ms, dx: " + dx + ", dy: " + dy);
     if (!isDragging && duration < 300 && Math.abs(dx) < 15 && Math.abs(dy) < 15) {
+      // Jump towards the finger position
       let angle = Phaser.Math.Angle.Between(player.x, player.y, pointer.x, pointer.y);
       let velocityX = Math.cos(angle) * PLAYER_SPEED;
       let velocityY = Math.sin(angle) * PLAYER_SPEED;
-      velocityY = Math.min(velocityY, PLAYER_JUMP_HEIGHT);
+      // Ensure upward jump has sufficient force
+      velocityY = Math.min(velocityY, PLAYER_JUMP_HEIGHT); // Cap upward velocity
       player.setVelocity(velocityX, velocityY);
       console.log("Player jump triggered towards (" + pointer.x + ", " + pointer.y + ")");
       if (PLAYER_ANIMATED) {
         player.anims.play('jump', true);
       }
-      // Updated Phaser 3.88.2 particle emitter
-      particles = this.add.particles('particle', {
+      // Phaser 3.88.2 particle emitter
+      particles = this.add.particles(0, 0, 'particle', {
         frame: { frames: ['particle'], cycle: true },
         scale: { start: PARTICLE_SCALE, end: 0 },
         blendMode: 'ADD',
@@ -271,7 +263,7 @@ function create() {
         lifespan: TRAIL_PARTICLE_LIFESPAN,
         frequency: 10,
         quantity: 5,
-        emitting: false // Start off (replaces 'on' property)
+        on: false
       });
       particles.startFollow(player, 0, TRAIL_PARTICLE_OFFSET_Y);
       particles.start();
