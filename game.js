@@ -187,9 +187,9 @@ function create() {
   }
   
   platforms = this.physics.add.group();
-  // Ensure consistent spacing by starting at bottom and decreasing by PLATFORM_SPACING
+  // Initial platform spawning with consistent 250px spacing
   let platformY = config.height - 20;
-  while (platformY >= -PLATFORM_SPACING) { // Spawn platforms above screen too
+  while (platformY >= -PLATFORM_SPACING) {
     let x = Phaser.Math.Between(20, config.width - 20);
     let plat = platforms.create(x, platformY, 'platform');
     plat.displayWidth = plat.width * PLATFORM_SCALE_X;
@@ -202,7 +202,7 @@ function create() {
     plat.body.setCollideWorldBounds(true);
     plat.body.setBounce(1, 0);
     plat.emptySprite = null;
-    platformY -= PLATFORM_SPACING; // Consistent spacing
+    platformY -= PLATFORM_SPACING;
   }
   
   if (PLAYER_ANIMATED) {
@@ -299,8 +299,9 @@ function update() {
     player.y = scrollThreshold;
     platforms.children.iterate((platform) => {
       platform.y += delta;
+      // Continuous platform spawning with consistent 250px spacing
       if (platform.y > config.height + PLATFORM_SPACING) {
-        platform.y = -PLATFORM_SPACING; // Consistent spacing for recycling
+        platform.y -= (Math.ceil((platform.y + PLATFORM_SPACING) / PLATFORM_SPACING) * PLATFORM_SPACING); // Move to top with spacing
         platform.x = Phaser.Math.Between(20, config.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
@@ -309,7 +310,9 @@ function update() {
           platform.emptySprite.destroy();
           platform.emptySprite = null;
         }
-        spawnEmptyOnPlatform(platform, this);
+        if (Phaser.Math.Between(0, 1)) { // Randomly spawn items on some platforms
+          spawnEmptyOnPlatform(platform, this);
+        }
       }
     });
   }
@@ -371,7 +374,7 @@ function collectEmpty(player, emptySprite, scene) {
     y: emptySprite.y,
     tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random colors
   });
-  starParticles.setPosition(emptySprite.x, emptySprite.y); // Ensure position
+  starParticles.setPosition(emptySprite.x, emptySprite.y); // Set initial position
   console.log("Starting star burst emission");
   starParticles.start(); // Trigger the one-time burst
   scene.time.delayedCall(50, () => { // Short delay to allow burst, then stop
