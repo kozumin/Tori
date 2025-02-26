@@ -361,7 +361,7 @@ function collectEmpty(player, emptySprite, scene) {
     speed: STAR_BURST_SPEED,
     lifespan: STAR_BURST_LIFESPAN,
     quantity: STAR_BURST_QUANTITY,
-    on: true, // Emit once immediately, as per working example style
+    on: true , // Emit immediately for a burst
     x: emptySprite.x,
     y: emptySprite.y,
     tint: Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random colors
