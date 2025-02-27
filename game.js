@@ -1,11 +1,70 @@
-// Game configuration
+// === CONFIGURATION PARAMETERS ===
+// Platform settings
+const PLATFORM_SPACING    = 250;    // Vertical spacing between platforms.
+const PLATFORM_SCALE_X    = 0.5;    // Multiply the platform's original width.
+const PLATFORM_SCALE_Y    = 0.5;    // Multiply the platform's original height.
+const PLATFORM_MIN_SPEED  = 5;      // Minimum horizontal speed.
+const PLATFORM_MAX_SPEED  = 90;     // Maximum horizontal speed.
+
+// Empty sprite settings
+const TOTAL_EMPTY_SPRITES = 15;     // Total number of empty sprites.
+const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floats up.
+const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween.
+const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween;
+
+// New configuration for collectible items
+const ITEM_NAMES = ['icecream', 'banana', 'broccoli', 'carrot', 'cherry', 'kitty', 'mermais', 'princess', 'strawberry', 'unicorn', 'watermelon'];
+const EMPTY_SPRITE_CONFIG = {
+  icecream:   { height: 64 },
+  banana:     { height: 64 },
+  broccoli:   { height: 64 },
+  carrot:     { height: 64 },
+  cherry:     { height: 64 },
+  kitty:      { height: 64 },
+  mermais:    { height: 64 },
+  princess:   { height: 64 },
+  strawberry: { height: 64 },
+  unicorn:    { height: 64 },
+  watermelon: { height: 64 }
+};
+
+// Player settings
+const PLAYER_SPEED        = 450;    // Maximum horizontal speed.
+const PLAYER_JUMP_HEIGHT  = -550;   // Base vertical jump velocity (adjusted by direction).
+const PLAYER_WIDTH        = 84;     // Display width for player.
+const PLAYER_HEIGHT       = 178;    // Display height for player.
+const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false for a static image.
+const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
+const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
+
+// Particle effect settings
+const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles.
+const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle.
+const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles.
+const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from player's center to bottom edge.
+const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission.
+
+// Star burst particle effect settings (on item collection)
+const STAR_BURST_LIFESPAN = 1000;   // Lifespan (ms) for star particles (reduced).
+const STAR_BURST_QUANTITY = 20;     // Number of star particles in burst (reduced).
+const STAR_BURST_SCALE    = 0.2;    // Starting scale for star particles (reduced).
+const STAR_BURST_SPEED    = { min: 50, max: 200 }; // Speed range for radial burst (adjusted).
+
+// Score/HUD settings
+const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
+const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; // Fancy gaming font.
+const SCORE_FONT_COLOR    = "#ffffff";             // White color.
+const SCORE_X             = 360 / 2;               // Centered horizontally (static for now).
+const SCORE_Y             = 10;                    // 10px from top.
+
+// === GAME CONFIGURATION ===
 const config = {
   type: Phaser.AUTO,
-  width: 360,
-  height: 640,
+  width: 360,  // Fixed base width
+  height: 640, // Fixed base height
   scale: {
-    mode: Phaser.Scale.FIT,
-    autoCenter: Phaser.Scale.CENTER_BOTH
+    mode: Phaser.Scale.FIT, // Fit within the screen, maintaining aspect ratio
+    autoCenter: Phaser.Scale.CENTER_BOTH // Center both horizontally and vertically
   },
   physics: {
     default: 'arcade',
@@ -18,198 +77,335 @@ const config = {
   }
 };
 
-// Initialize the game
+let player, platforms, empties, scoreText, particles;
+let pointerDownStart = { x: null, y: null, time: null };
+let isDragging = false;
+let score = 0;
+
 const game = new Phaser.Game(config);
 
-// Game variables
-let player, platforms, items, scoreText, particles, camera, background;
-let score = 0;
-let lastPlatformY = config.height - 50;
-
-// Game parameters
-const PLATFORM_SPACING_MIN = 100;       // Minimum vertical spacing between platforms
-const PLATFORM_SPACING_MAX = 200;       // Maximum vertical spacing between platforms
-const PLATFORM_LENGTH_MIN = 0.5;        // Minimum width scale factor
-const PLATFORM_LENGTH_MAX = 1.5;        // Maximum width scale factor
-const PLATFORM_SCALE_Y = 0.2;           // Height scale factor
-const PLATFORM_SPEED_MIN = 20;          // Minimum horizontal speed
-const PLATFORM_SPEED_MAX = 50;          // Maximum horizontal speed
-const SCROLL_THRESHOLD = 300;           // Height at which scrolling triggers
-
-// Preload assets
-function preload() {
-  this.load.image('background', 'assets/enchanted_forest_background.png');
-  this.load.image('platform', 'assets/wooden_platform.png');
-  this.load.image('player', 'assets/tori_superhero.png');
-  this.load.image('item', 'assets/banana.png');
-  this.load.image('stars', 'assets/glowing_stars.png');
-  this.load.image('mushrooms', 'assets/colorful_mushrooms.png');
-  this.load.image('vines', 'assets/vines_with_orbs.png');
-}
-
-// Create game objects
-function create() {
-  // Background with enchanted forest theme
-  background = this.add.tileSprite(0, 0, config.width, config.height * 2, 'background')
-    .setOrigin(0, 0)
-    .setScrollFactor(0.5); // Parallax effect
-
-  // Decorative elements (mushrooms and vines)
-  this.add.image(config.width / 2, config.height - 50, 'mushrooms')
-    .setOrigin(0.5, 1)
-    .setScrollFactor(0.8);
-  this.add.image(config.width / 2, 0, 'vines')
-    .setOrigin(0.5, 0)
-    .setScrollFactor(0);
-
-  // Groups for platforms and items
-  platforms = this.physics.add.group();
-  items = this.physics.add.group();
-
-  // Particle emitter for item collection (glowing stars)
-  particles = this.add.particles('stars').createEmitter({
-    speed: { min: 50, max: 100 },
-    angle: { min: 0, max: 360 },
-    scale: { start: 0.5, end: 0 },
-    blendMode: 'ADD',
-    lifespan: 300,
-    quantity: 10,
-    on: false
-  });
-
-  // Generate initial platforms
-  lastPlatformY = config.height - 50;
-  let currentY = lastPlatformY;
-  while (currentY > -PLATFORM_SPACING_MAX) {
-    spawnPlatform(this, currentY);
-    currentY -= Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
-  }
-
-  // Player (Tori in superhero costume)
-  player = this.physics.add.sprite(config.width / 2, config.height - 100, 'player')
-    .setScale(0.5)
-    .setCollideWorldBounds(true);
-  this.physics.add.collider(player, platforms);
-  this.physics.add.overlap(player, items, collectItem, null, this);
-
-  // Camera setup
-  camera = this.cameras.main;
-  camera.setBounds(0, 0, config.width, Number.MAX_VALUE);
-  camera.startFollow(player, false, 0, 0.1);
-
-  // Input handling for jumping
-  this.input.on('pointerdown', (pointer) => {
-    if (player.body.touching.down) {
-      player.setVelocityY(-500); // Jump velocity
-    }
-  });
-
-  // Score UI with "TORI" branding
-  scoreText = this.add.text(config.width / 2, 20, 'TORI Score: 0', {
-    fontSize: '24px',
-    fontFamily: 'Arial',
-    color: '#ffffff'
-  }).setOrigin(0.5, 0).setScrollFactor(0);
-}
-
-// Update game state
-function update() {
-  // Scroll when player reaches threshold
-  if (player.y < camera.scrollY + SCROLL_THRESHOLD) {
-    const delta = (camera.scrollY + SCROLL_THRESHOLD) - player.y;
-    camera.scrollY -= delta;
-
-    // Adjust background for parallax effect
-    background.tilePositionY -= delta * 0.5;
-
-    // Shift platforms and items downward
-    platforms.getChildren().forEach(platform => {
-      platform.y += delta;
-      platform.body.y += delta;
-    });
-    items.getChildren().forEach(item => {
-      item.y += delta;
-      item.body.y += delta;
-    });
-
-    // Remove platforms and items below screen
-    platforms.getChildren().forEach(platform => {
-      if (platform.y > camera.scrollY + config.height + 100) {
-        platform.destroy();
-      }
-    });
-    items.getChildren().forEach(item => {
-      if (item.y > camera.scrollY + config.height + 50) {
-        item.destroy();
-      }
-    });
-
-    // Generate new platforms above
-    let highestY = platforms.getChildren().reduce((min, p) => Math.min(min, p.y), config.height);
-    let currentY = highestY - Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
-    while (currentY > camera.scrollY - PLATFORM_SPACING_MAX) {
-      spawnPlatform(this, currentY);
-      currentY -= Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
-    }
-  }
-
-  // Update score display
-  scoreText.setText(`TORI Score: ${score}`);
-}
-
-// Spawn a platform
-function spawnPlatform(scene, y) {
-  const x = Phaser.Math.Between(50, config.width - 50);
-  const platform = platforms.create(x, y, 'platform');
-  const widthScale = Phaser.Math.FloatBetween(PLATFORM_LENGTH_MIN, PLATFORM_LENGTH_MAX);
-  platform.displayWidth = platform.width * widthScale;
-  platform.displayHeight = platform.height * PLATFORM_SCALE_Y;
-  platform.body.setImmovable(true);
-  platform.body.allowGravity = false;
-
-  // Random horizontal speed and direction
-  let speed = Phaser.Math.Between(PLATFORM_SPEED_MIN, PLATFORM_SPEED_MAX);
-  speed = Phaser.Math.Between(0, 1) ? speed : -speed;
-  platform.body.setVelocityX(speed);
-  platform.body.setCollideWorldBounds(true);
-  platform.body.setBounceX(1);
-
-  // Spawn item (banana) on platform
-  spawnItem(scene, platform);
-}
-
-// Spawn an item on the platform
-function spawnItem(scene, platform) {
-  const itemX = platform.x;
-  const itemY = platform.y - platform.displayHeight / 2 - 10;
-  const item = items.create(itemX, itemY, 'item');
-  item.body.allowGravity = false;
-
-  // Idle animation (floating effect)
+function spawnEmptyOnPlatform(platform, scene) {
+  console.log("Spawning empty sprite on platform at (" + platform.x + ", " + platform.y + ")");
+  let platformTop = platform.y - platform.displayHeight / 2;
+  let itemKey = Phaser.Utils.Array.GetRandom(ITEM_NAMES);
+  let emptySprite = scene.add.sprite(platform.x, platformTop, itemKey);
+  emptySprite.setOrigin(0.5, 1);
+  
+  let texture = scene.textures.get(itemKey).getSourceImage();
+  let originalWidth = texture.width;
+  let originalHeight = texture.height;
+  let desiredHeight = EMPTY_SPRITE_CONFIG[itemKey].height;
+  let scaleFactor = desiredHeight / originalHeight;
+  let desiredWidth = originalWidth * scaleFactor;
+  emptySprite.setDisplaySize(desiredWidth, desiredHeight);
+  
+  scene.physics.add.existing(emptySprite);
+  emptySprite.body.setAllowGravity(false);
+  emptySprite.body.setImmovable(true);
+  emptySprite.customOffset = 0;
+  emptySprite.parentPlatform = platform;
+  platform.emptySprite = emptySprite;
+  empties.add(emptySprite);
   scene.tweens.add({
-    targets: item,
-    y: itemY - 10,
-    duration: 1000,
-    ease: 'Sine.easeInOut',
+    targets: emptySprite,
+    customOffset: EMPTY_IDLE_DISTANCE,
+    duration: EMPTY_IDLE_DURATION,
     yoyo: true,
-    repeat: -1
+    repeat: -1,
+    ease: EMPTY_IDLE_EASE,
+    onStart: () => { console.log("Idle tween started for empty sprite on platform at (" + platform.x + ", " + platform.y + ")"); }
   });
 }
 
-// Collect an item
-function collectItem(player, item) {
-  if (!item.active) return;
-  item.active = false;
+function preload() {
+  console.log("Preloading assets...");
+  console.log("Phaser version:", Phaser.VERSION);
+  this.load.image('background', 'assets/background.png');
+  this.load.image('platform', 'assets/platform.png');
+  if (PLAYER_ANIMATED) {
+    this.load.spritesheet('player', 'assets/player.png', {
+      frameWidth: PLAYER_FRAME_WIDTH,
+      frameHeight: PLAYER_FRAME_HEIGHT
+    });
+  } else {
+    this.load.image('player', 'assets/player.png');
+  }
+  this.load.image('particle', 'assets/particle.png');
+  this.load.image('stars', 'assets/stars.png');
+  this.load.on('filecomplete-image-particle', () => {
+    console.log("Particle texture loaded successfully!");
+  });
+  this.load.on('filecomplete-image-stars', () => {
+    console.log("Stars texture loaded successfully!");
+  });
+  this.load.on('loaderror', (file) => {
+    console.error("Error loading file:", file.key);
+  });
+  this.load.image('icecream', 'assets/icecream.png');
+  this.load.image('banana', 'assets/banana.png');
+  this.load.image('broccoli', 'assets/broccoli.png');
+  this.load.image('carrot', 'assets/carrot.png');
+  this.load.image('cherry', 'assets/cherry.png');
+  this.load.image('kitty', 'assets/kitty.png');
+  this.load.image('mermais', 'assets/mermais.png');
+  this.load.image('princess', 'assets/princess.png');
+  this.load.image('strawberry', 'assets/strawberry.png');
+  this.load.image('unicorn', 'assets/unicorn.png');
+  this.load.image('watermelon', 'assets/watermelon.png');
+}
 
-  // Collection animation
-  this.tweens.add({
-    targets: item,
-    scale: 1.5,
-    duration: 100,
-    onComplete: () => {
-      particles.emitParticleAt(item.x, item.y);
-      item.destroy();
-      score++;
+function create() {
+  console.log("Creating scene...");
+  let bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
+  bg.displayWidth = config.width;
+  bg.displayHeight = config.height;
+  
+  if (PLAYER_ANIMATED) {
+    this.anims.create({
+      key: 'idle',
+      frames: [{ key: 'player', frame: 0 }],
+      frameRate: 10,
+      repeat: -1
+    });
+    this.anims.create({
+      key: 'jump',
+      frames: [{ key: 'player', frame: 1 }],
+      frameRate: 10,
+      repeat: -1
+    });
+    this.anims.create({
+      key: 'walk',
+      frames: this.anims.generateFrameNumbers('player', { start: 2, end: 5 }),
+      frameRate: 10,
+      repeat: -1
+    });
+  }
+  
+  platforms = this.physics.add.group();
+  for (let y = config.height - 20; y >= -PLATFORM_SPACING * 2; y -= PLATFORM_SPACING) {
+    let x = Phaser.Math.Between(20, config.width - 20);
+    let plat = platforms.create(x, y, 'platform');
+    plat.displayWidth = plat.width * PLATFORM_SCALE_X;
+    plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
+    plat.body.setImmovable(true);
+    plat.body.allowGravity = false;
+    let vx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
+    if (Phaser.Math.Between(0, 1)) vx = -vx;
+    plat.body.setVelocityX(vx);
+    plat.body.setCollideWorldBounds(true);
+    plat.body.setBounce(1, 0);
+    plat.emptySprite = null;
+  }
+  
+  if (PLAYER_ANIMATED) {
+    player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player');
+    player.setDisplaySize(PLAYER_WIDTH, PLAYER_HEIGHT);
+    player.anims.play('idle');
+  } else {
+    player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player');
+    player.setDisplaySize(PLAYER_WIDTH, PLAYER_HEIGHT);
+  }
+  player.setCollideWorldBounds(true);
+  
+  this.physics.add.collider(player, platforms);
+  
+  empties = this.add.group();
+  platforms.getChildren().forEach((plat) => {
+    if (empties.getLength() < TOTAL_EMPTY_SPRITES) {
+      spawnEmptyOnPlatform(plat, this);
     }
   });
+  
+  score = 0;
+  scoreText = this.add.text(SCORE_X, SCORE_Y, "TORI: " + score, { font: SCORE_FONT_SIZE + "px " + SCORE_FONT_FAMILY, fill: SCORE_FONT_COLOR });
+  scoreText.setOrigin(0.5, 0);
+  
+  this.physics.add.overlap(player, empties, (player, emptySprite) => {
+    collectEmpty(player, emptySprite, this);
+  }, null, this);
+  
+  this.input.on('pointerdown', (pointer) => {
+    pointerDownStart = { x: pointer.x, y: pointer.y, time: pointer.downTime };
+    isDragging = false;
+    console.log("Pointer down at (" + pointer.x + ", " + pointer.y + ")");
+  });
+  
+  this.input.on('pointermove', (pointer) => {
+    if (pointer.isDown) {
+      let dx = pointer.x - pointerDownStart.x;
+      if (Math.abs(dx) > 15) {
+        isDragging = true;
+        let newVel = Phaser.Math.Clamp((pointer.x - player.x) * 2, -PLAYER_SPEED, PLAYER_SPEED);
+        player.setVelocityX(newVel);
+        console.log("Dragging: setting player velocity to " + newVel);
+      }
+    }
+  });
+  
+  this.input.on('pointerup', (pointer) => {
+    let dx = pointer.x - pointerDownStart.x;
+    let dy = pointer.y - pointerDownStart.y;
+    let duration = pointer.upTime - pointerDownStart.time;
+    console.log("Pointer up after " + duration + " ms, dx: " + dx + ", dy: " + dy);
+    if (!isDragging && duration < 300 && Math.abs(dx) < 15 && Math.abs(dy) < 15) {
+      let angle = Phaser.Math.Angle.Between(player.x, player.y, pointer.x, pointer.y);
+      let velocityX = Math.cos(angle) * PLAYER_SPEED;
+      let velocityY = Math.sin(angle) * PLAYER_SPEED;
+      velocityY = Math.min(velocityY, PLAYER_JUMP_HEIGHT);
+      player.setVelocity(velocityX, velocityY);
+      console.log("Player jump triggered towards (" + pointer.x + ", " + pointer.y + ")");
+      if (PLAYER_ANIMATED) {
+        player.anims.play('jump', true);
+      }
+      particles = this.add.particles(0, 0, 'particle', {
+        scale: { start: PARTICLE_SCALE, end: 0 },
+        blendMode: 'ADD',
+        speed: TRAIL_PARTICLE_SPEED,
+        lifespan: TRAIL_PARTICLE_LIFESPAN,
+        frequency: 10,
+        quantity: 5,
+        on: false
+      });
+      particles.startFollow(player, 0, TRAIL_PARTICLE_OFFSET_Y);
+      particles.start();
+      this.time.delayedCall(TRAIL_PARTICLE_EMIT_DURATION, () => {
+        particles.stop();
+        this.time.delayedCall(TRAIL_PARTICLE_LIFESPAN, () => {
+          particles.destroy();
+        });
+      });
+    }
+    pointerDownStart = { x: null, y: null, time: null };
+  });
+}
+
+function update() {
+  if (!this.input.activePointer.isDown) {
+    player.setVelocityX(player.body.velocity.x * 0.95);
+  }
+  
+  const scrollThreshold = 300;
+  if (player.y < scrollThreshold) {
+    let delta = scrollThreshold - player.y;
+    player.y = scrollThreshold;
+    let highestY = config.height;
+    platforms.getChildren().forEach((platform) => {
+      if (platform.y < highestY) highestY = platform.y;
+    });
+    platforms.children.iterate((platform) => {
+      platform.y += delta;
+      if (platform.y > config.height + platform.displayHeight) {
+        platform.y = highestY - PLATFORM_SPACING;
+        platform.x = Phaser.Math.Between(20, config.width - 20);
+        let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
+        if (Phaser.Math.Between(0, 1)) newVx = -newVx;
+        platform.body.setVelocityX(newVx);
+        if (platform.emptySprite) {
+          platform.emptySprite.destroy();
+          platform.emptySprite = null;
+        }
+        if (Phaser.Math.Between(0, 1)) {
+          spawnEmptyOnPlatform(platform, this);
+        }
+      }
+    });
+  }
+  
+  let deltaTime = this.game.loop.delta / 1000;
+  platforms.children.iterate((platform) => {
+    if (player.body.touching.down && platform.body.touching.up &&
+        player.x > platform.x - platform.displayWidth / 2 &&
+        player.x < platform.x + platform.displayWidth / 2) {
+      player.x += platform.body.velocity.x * deltaTime;
+    }
+  });
+  
+  empties.getChildren().forEach((emptySprite) => {
+    if (!emptySprite.active) return;
+    if (emptySprite.parentPlatform) {
+      let platform = emptySprite.parentPlatform;
+      let platformTop = platform.y - (platform.displayHeight / 2);
+      emptySprite.x = platform.x;
+      emptySprite.y = platformTop + emptySprite.customOffset;
+    }
+  });
+  
+  scoreText.setText("TORI: " + score);
+  
+  if (!player.body.touching.down) {
+    if (PLAYER_ANIMATED) player.anims.play('jump', true);
+  } else {
+    if (Math.abs(player.body.velocity.x) > 10) {
+      if (PLAYER_ANIMATED) player.anims.play('walk', true);
+    } else {
+      if (PLAYER_ANIMATED) player.anims.play('idle', true);
+    }
+  }
+  
+  if (player.y > config.height) {
+    console.log("Player fell; restarting game.");
+    restartGame(this);
+  }
+}
+
+function collectEmpty(player, emptySprite, scene) {
+  if (!emptySprite.active) return;
+  console.log("Collecting empty sprite at (" + emptySprite.x + ", " + emptySprite.y + ")");
+  emptySprite.scene.tweens.killTweensOf(emptySprite);
+  emptySprite.body.enable = false;
+  
+  let emitterCenterX = emptySprite.x;
+  let emitterCenterY = emptySprite.y - (emptySprite.displayHeight / 2);
+  console.log("Creating star burst emitter at (" + emitterCenterX + ", " + emitterCenterY + ")");
+  let starParticles = scene.add.particles(0, 0, 'stars', {
+    scale: { start: STAR_BURST_SCALE, end: 0 },
+    blendMode: 'ADD',
+    speed: STAR_BURST_SPEED,
+    radial: true,
+    lifespan: STAR_BURST_LIFESPAN,
+    quantity: STAR_BURST_QUANTITY,
+    on: false,
+    tint: () => Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random color per particle
+  });
+  starParticles.setPosition(emitterCenterX, emitterCenterY);
+  console.log("Starting star burst emission");
+  starParticles.start();
+  scene.time.delayedCall(300, () => {
+    starParticles.stop();
+    console.log("Star burst emission stopped");
+    scene.time.delayedCall(STAR_BURST_LIFESPAN, () => {
+      starParticles.destroy();
+      console.log("Star burst emitter destroyed");
+    });
+  });
+  
+  emptySprite.scene.tweens.add({
+    targets: emptySprite,
+    x: player.x,
+    y: player.y,
+    scaleX: 0,
+    scaleY: 0,
+    duration: 500,
+    ease: 'Quad.easeIn',
+    onStart: () => { console.log("Collection tween started for empty sprite."); },
+    onComplete: function() {
+      console.log("Empty sprite collection tween complete.");
+      emptySprite.destroy();
+    }
+  });
+  if (emptySprite.parentPlatform) {
+    emptySprite.parentPlatform.emptySprite = null;
+  }
+  score++;
+  emptySprite.scene.tweens.add({
+    targets: scoreText,
+    scale: 1.5,
+    duration: 200,
+    yoyo: true,
+    ease: 'Power1'
+  });
+}
+
+function restartGame(scene) {
+  scene.scene.restart();
 }
