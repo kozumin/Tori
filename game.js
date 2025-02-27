@@ -206,7 +206,7 @@ function create() {
   empties = this.physics.add.group();
   lastPlatformY = config.height - 50; // Start just above the player at the bottom
   
-  // Initial platforms to fill the visible area (5 platforms)
+  // Initial platforms to fill the visible area (5 platforms, one per line)
   for (let i = 0; i < 5; i++) {
     let spacing = Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
     lastPlatformY -= spacing;
@@ -226,7 +226,7 @@ function create() {
   
   camera = this.cameras.main;
   camera.setBounds(0, 0, config.width, Number.MAX_VALUE); // Allow infinite vertical scrolling
-  camera.startFollow(player, true, 0, 0.1, 0, 0); // Follow player with slight lag, no offset
+  camera.startFollow(player, true, 0, 0.1, 0, config.height - PLAYER_HEIGHT); // Follow player, offset to show bottom of screen
   
   this.input.on('pointerdown', (pointer) => {
     pointerDownStart = { x: pointer.x, y: pointer.y, time: pointer.downTime };
@@ -292,8 +292,8 @@ function update() {
     player.setVelocityX(player.body.velocity.x * 0.95);
   }
   
-  // Camera follows player smoothly, centered vertically
-  camera.scrollY = player.y - config.height / 2;
+  // Camera follows player smoothly, showing bottom of screen
+  camera.scrollY = player.y - config.height + PLAYER_HEIGHT; // Keep player at bottom of screen
   
   // Remove platforms below screen and spawn new ones above
   let bottomThreshold = camera.scrollY + config.height + 100; // Remove platforms slightly below screen
