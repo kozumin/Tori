@@ -78,7 +78,7 @@ const config = {
   }
 };
 
-let player, platforms, empties, scoreText, particles;
+let player, platforms, empties, scoreText, particles, camera;
 let pointerDownStart = { x: null, y: null, time: null };
 let isDragging = false;
 let score = 0;
@@ -203,12 +203,16 @@ function create() {
   
   platforms = this.physics.add.group();
   empties = this.physics.add.group(); // Ensure this is a physics group
-  highestPlatformY = config.height - 20; // Start at bottom
-  for (let y = highestPlatformY; y >= -config.height; y -= Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX)) {
+  highestPlatformY = config.height - 20; // Start at bottom, just above ground
+  
+  // Initial platforms, covering visible area and a buffer above
+  for (let y = highestPlatformY; y >= config.height - (PLATFORM_SPACING_MAX * 3); y -= Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX)) {
     let x = Phaser.Math.Between(20, config.width - 20);
-    createPlatform(this, x, y);
+    let plat = createPlatform(this, x, y);
+    if (plat.y < highestPlatformY) {
+      highestPlatformY = plat.y; // Track the highest platform
+    }
   }
-  highestPlatformY = -config.height; // Set initial highest point
   
   if (PLAYER_ANIMATED) {
     player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player');
@@ -225,6 +229,11 @@ function create() {
   this.physics.add.overlap(player, empties, (player, emptySprite) => {
     collectEmpty(player, emptySprite, this);
   }, null, this);
+  
+  // Set up camera to follow player vertically
+  camera = this.cameras.main;
+  camera.setBounds(0, 0, config.width, Number.MAX_VALUE); // Allow infinite vertical scrolling
+  camera.startFollow(player, true, 0, 0.1, 0, -50); // Follow player, slight lag for smoothness, offset upward
   
   this.input.on('pointerdown', (pointer) => {
     pointerDownStart = { x: pointer.x, y: pointer.y, time: pointer.downTime };
@@ -290,37 +299,43 @@ function update() {
     player.setVelocityX(player.body.velocity.x * 0.95);
   }
   
-  const scrollThreshold = 300;
-  if (player.y < scrollThreshold) {
-    let delta = scrollThreshold - player.y;
-    player.y = scrollThreshold;
-    platforms.children.iterate((platform) => {
-      platform.y += delta;
-      if (platform.y > config.height + platform.displayHeight) {
-        platform.destroy(); // Remove platform completely when off-screen
+  // Camera follows player smoothly
+  camera.scrollY = player.y - config.height / 2 + 50; // Center player vertically, offset upward
+  
+  // Remove platforms below screen and spawn new ones above
+  let bottomThreshold = camera.scrollY + config.height + 100; // Remove platforms slightly below screen
+  let topThreshold = camera.scrollY - PLATFORM_SPACING_MAX; // Spawn above visible area
+  platforms.children.each((platform) => {
+    if (platform.y > bottomThreshold) {
+      if (platform.emptySprite) {
+        platform.emptySprite.destroy();
+        platform.emptySprite = null;
       }
-    });
-    
-    // Spawn new platform above highest point if needed
-    let topScreenY = player.y - config.height; // Top of visible screen
-    while (highestPlatformY > topScreenY - PLATFORM_SPACING_MAX) {
-      let spacing = Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
-      highestPlatformY -= spacing;
-      let x = Phaser.Math.Between(20, config.width - 20);
-      createPlatform(this, x, highestPlatformY);
+      platform.destroy();
+    }
+  }, this);
+  
+  // Spawn new platforms if needed
+  while (highestPlatformY > topThreshold) {
+    let spacing = Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
+    highestPlatformY -= spacing;
+    let x = Phaser.Math.Between(20, config.width - 20);
+    let plat = createPlatform(this, x, highestPlatformY);
+    if (plat.y < highestPlatformY) {
+      highestPlatformY = plat.y; // Update highest point if necessary
     }
   }
   
   let deltaTime = this.game.loop.delta / 1000;
-  platforms.children.iterate((platform) => {
+  platforms.children.each((platform) => {
     if (player.body.touching.down && platform.body.touching.up &&
         player.x > platform.x - platform.displayWidth / 2 &&
         player.x < platform.x + platform.displayWidth / 2) {
       player.x += platform.body.velocity.x * deltaTime;
     }
-  });
+  }, this);
   
-  empties.getChildren().forEach((emptySprite) => {
+  empties.getChildren().each((emptySprite) => {
     if (!emptySprite.active) return;
     if (emptySprite.parentPlatform) {
       let platform = emptySprite.parentPlatform;
@@ -328,7 +343,7 @@ function update() {
       emptySprite.x = platform.x;
       emptySprite.y = platformTop + emptySprite.customOffset;
     }
-  });
+  }, this);
   
   scoreText.setText("TORI: " + score);
   
