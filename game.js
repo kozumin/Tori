@@ -1,6 +1,6 @@
 // === CONFIGURATION PARAMETERS ===
 // Platform settings
-const PLATFORM_SPACING_MIN = 250;   // Minimum vertical spacing between platforms
+const PLATFORM_SPACING_MIN = 150;   // Minimum vertical spacing between platforms
 const PLATFORM_SPACING_MAX = 350;   // Maximum vertical spacing between platforms
 const PLATFORM_LENGTH_MIN  = 0.3;   // Minimum scale factor for platform width
 const PLATFORM_LENGTH_MAX  = 0.7;   // Maximum scale factor for platform width
@@ -176,7 +176,7 @@ function preload() {
 
 function create() {
   console.log("Creating scene...");
-  let bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
+  let bg = this.add.image(0, 0, 'background').setOrigin(0, 0).setScrollFactor(0); // Fix background in place
   bg.displayWidth = config.width;
   bg.displayHeight = config.height;
   
@@ -299,14 +299,14 @@ function update() {
     player.setVelocityX(player.body.velocity.x * 0.95);
   }
   
-  // Camera follows player smoothly
+  // Camera follows player smoothly (relative to world coords)
   camera.scrollY = player.y - config.height / 2 + 50; // Center player vertically, offset upward
   
   // Remove platforms below screen and spawn new ones above
   let bottomThreshold = camera.scrollY + config.height + 100; // Remove platforms slightly below screen
   let topThreshold = camera.scrollY - PLATFORM_SPACING_MAX; // Spawn above visible area
-  platforms.children.iterate((platform) => { // Use iterate for physics group
-    if (platform.y > bottomThreshold) {
+  platforms.children.iterate((platform) => {
+    if (platform && platform.y > bottomThreshold) { // Check if platform exists
       if (platform.emptySprite) {
         platform.emptySprite.destroy();
         platform.emptySprite = null;
@@ -321,27 +321,30 @@ function update() {
     highestPlatformY -= spacing;
     let x = Phaser.Math.Between(20, config.width - 20);
     let plat = createPlatform(this, x, highestPlatformY);
-    if (plat.y < highestPlatformY) {
+    if (plat && plat.y < highestPlatformY) {
       highestPlatformY = plat.y; // Ensure highestPlatformY reflects the new platform
     }
   }
   
   let deltaTime = this.game.loop.delta / 1000;
-  platforms.children.iterate((platform) => { // Use iterate for physics group
-    if (player.body.touching.down && platform.body.touching.up &&
+  platforms.children.iterate((platform) => {
+    if (platform && player.body.touching.down && platform.body.touching.up &&
         player.x > platform.x - platform.displayWidth / 2 &&
         player.x < platform.x + platform.displayWidth / 2) {
       player.x += platform.body.velocity.x * deltaTime;
     }
   }, this);
   
-  empties.children.iterate((emptySprite) => { // Use iterate for physics group
-    if (!emptySprite.active) return;
-    if (emptySprite.parentPlatform) {
+  empties.children.iterate((emptySprite) => {
+    if (emptySprite && emptySprite.active && emptySprite.parentPlatform) {
       let platform = emptySprite.parentPlatform;
-      let platformTop = platform.y - (platform.displayHeight / 2);
-      emptySprite.x = platform.x;
-      emptySprite.y = platformTop + emptySprite.customOffset;
+      if (platform) { // Check if platform exists
+        let platformTop = platform.y - (platform.displayHeight / 2);
+        emptySprite.x = platform.x;
+        emptySprite.y = platformTop + emptySprite.customOffset;
+      } else {
+        emptySprite.destroy(); // Clean up orphaned items
+      }
     }
   }, this);
   
