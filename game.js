@@ -22,84 +22,90 @@ const config = {
 const game = new Phaser.Game(config);
 
 // Game variables
-let player, platforms, items, scoreText, particles, camera;
+let player, platforms, items, scoreText, particles, camera, background;
 let score = 0;
 let lastPlatformY = config.height - 50;
 
 // Game parameters
-const PLATFORM_SPACING_MIN = 150;    // Minimum vertical spacing between platforms
-const PLATFORM_SPACING_MAX = 250;    // Maximum vertical spacing between platforms
-const PLATFORM_LENGTH_MIN = 0.4;     // Minimum scale factor for platform width
-const PLATFORM_LENGTH_MAX = 0.8;     // Maximum scale factor for platform width
-const PLATFORM_SCALE_Y = 0.5;        // Scale factor for platform height
-const PLATFORM_SPEED_MIN = 20;       // Minimum horizontal speed for platforms
-const PLATFORM_SPEED_MAX = 80;       // Maximum horizontal speed for platforms
-const PLAYER_JUMP_VELOCITY = -500;   // Player's jump velocity
-const SCROLL_THRESHOLD = 200;        // Height at which screen scrolls upward
-const ITEM_NAMES = ['star', 'gem', 'coin']; // Example item names
+const PLATFORM_SPACING_MIN = 100;       // Minimum vertical spacing between platforms
+const PLATFORM_SPACING_MAX = 200;       // Maximum vertical spacing between platforms
+const PLATFORM_LENGTH_MIN = 0.5;        // Minimum width scale factor
+const PLATFORM_LENGTH_MAX = 1.5;        // Maximum width scale factor
+const PLATFORM_SCALE_Y = 0.2;           // Height scale factor
+const PLATFORM_SPEED_MIN = 20;          // Minimum horizontal speed
+const PLATFORM_SPEED_MAX = 50;          // Maximum horizontal speed
+const SCROLL_THRESHOLD = 300;           // Height at which scrolling triggers
 
 // Preload assets
 function preload() {
-  this.load.image('background', 'assets/background.png');
-  this.load.image('platform', 'assets/platform.png');
-  this.load.image('player', 'assets/player.png');
-  this.load.image('particle', 'assets/particle.png');
-  this.load.image('star', 'assets/star.png');
-  this.load.image('gem', 'assets/gem.png');
-  this.load.image('coin', 'assets/coin.png');
+  this.load.image('background', 'assets/enchanted_forest_background.png');
+  this.load.image('platform', 'assets/wooden_platform.png');
+  this.load.image('player', 'assets/tori_superhero.png');
+  this.load.image('item', 'assets/banana.png');
+  this.load.image('stars', 'assets/glowing_stars.png');
+  this.load.image('mushrooms', 'assets/colorful_mushrooms.png');
+  this.load.image('vines', 'assets/vines_with_orbs.png');
 }
 
 // Create game objects
 function create() {
-  // Background
-  const bg = this.add.image(0, 0, 'background').setOrigin(0, 0).setScrollFactor(0);
-  bg.displayWidth = config.width;
-  bg.displayHeight = config.height;
+  // Background with enchanted forest theme
+  background = this.add.tileSprite(0, 0, config.width, config.height * 2, 'background')
+    .setOrigin(0, 0)
+    .setScrollFactor(0.5); // Parallax effect
 
-  // Groups
+  // Decorative elements (mushrooms and vines)
+  this.add.image(config.width / 2, config.height - 50, 'mushrooms')
+    .setOrigin(0.5, 1)
+    .setScrollFactor(0.8);
+  this.add.image(config.width / 2, 0, 'vines')
+    .setOrigin(0.5, 0)
+    .setScrollFactor(0);
+
+  // Groups for platforms and items
   platforms = this.physics.add.group();
   items = this.physics.add.group();
 
-  // Initial platforms
+  // Particle emitter for item collection (glowing stars)
+  particles = this.add.particles('stars').createEmitter({
+    speed: { min: 50, max: 100 },
+    angle: { min: 0, max: 360 },
+    scale: { start: 0.5, end: 0 },
+    blendMode: 'ADD',
+    lifespan: 300,
+    quantity: 10,
+    on: false
+  });
+
+  // Generate initial platforms
   lastPlatformY = config.height - 50;
-  for (let i = 0; i < 6; i++) {
-    const spacing = Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
-    lastPlatformY -= spacing;
-    const x = Phaser.Math.Between(50, config.width - 50);
-    createPlatform(this, x, lastPlatformY);
+  let currentY = lastPlatformY;
+  while (currentY > -PLATFORM_SPACING_MAX) {
+    spawnPlatform(this, currentY);
+    currentY -= Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
   }
 
-  // Player
+  // Player (Tori in superhero costume)
   player = this.physics.add.sprite(config.width / 2, config.height - 100, 'player')
     .setScale(0.5)
     .setCollideWorldBounds(true);
   this.physics.add.collider(player, platforms);
   this.physics.add.overlap(player, items, collectItem, null, this);
 
-  // Camera
+  // Camera setup
   camera = this.cameras.main;
   camera.setBounds(0, 0, config.width, Number.MAX_VALUE);
   camera.startFollow(player, false, 0, 0.1);
 
-  // Input handling
+  // Input handling for jumping
   this.input.on('pointerdown', (pointer) => {
     if (player.body.touching.down) {
-      player.setVelocityY(PLAYER_JUMP_VELOCITY);
-      // Jump particle effect
-      particles = this.add.particles(0, 0, 'particle', {
-        scale: { start: 0.1, end: 0 },
-        speed: { min: -50, max: 50 },
-        lifespan: 300,
-        frequency: 10,
-        quantity: 5
-      });
-      particles.startFollow(player);
-      this.time.delayedCall(200, () => particles.destroy());
+      player.setVelocityY(-500); // Jump velocity
     }
   });
 
-  // Score
-  scoreText = this.add.text(config.width / 2, 20, 'Score: 0', {
+  // Score UI with "TORI" branding
+  scoreText = this.add.text(config.width / 2, 20, 'TORI Score: 0', {
     fontSize: '24px',
     fontFamily: 'Arial',
     color: '#ffffff'
@@ -108,71 +114,81 @@ function create() {
 
 // Update game state
 function update() {
-  // Screen scrolling
+  // Scroll when player reaches threshold
   if (player.y < camera.scrollY + SCROLL_THRESHOLD) {
-    camera.scrollY = player.y - SCROLL_THRESHOLD;
-  }
+    const delta = (camera.scrollY + SCROLL_THRESHOLD) - player.y;
+    camera.scrollY -= delta;
 
-  // Platform management
-  const bottomThreshold = camera.scrollY + config.height + 100;
-  const topThreshold = camera.scrollY - PLATFORM_SPACING_MAX;
+    // Adjust background for parallax effect
+    background.tilePositionY -= delta * 0.5;
 
-  platforms.getChildren().forEach(platform => {
-    if (platform.y > bottomThreshold) {
-      if (platform.item) platform.item.destroy();
-      platform.destroy();
+    // Shift platforms and items downward
+    platforms.getChildren().forEach(platform => {
+      platform.y += delta;
+      platform.body.y += delta;
+    });
+    items.getChildren().forEach(item => {
+      item.y += delta;
+      item.body.y += delta;
+    });
+
+    // Remove platforms and items below screen
+    platforms.getChildren().forEach(platform => {
+      if (platform.y > camera.scrollY + config.height + 100) {
+        platform.destroy();
+      }
+    });
+    items.getChildren().forEach(item => {
+      if (item.y > camera.scrollY + config.height + 50) {
+        item.destroy();
+      }
+    });
+
+    // Generate new platforms above
+    let highestY = platforms.getChildren().reduce((min, p) => Math.min(min, p.y), config.height);
+    let currentY = highestY - Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
+    while (currentY > camera.scrollY - PLATFORM_SPACING_MAX) {
+      spawnPlatform(this, currentY);
+      currentY -= Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
     }
-  });
-
-  if (lastPlatformY > topThreshold) {
-    const spacing = Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
-    lastPlatformY -= spacing;
-    const x = Phaser.Math.Between(50, config.width - 50);
-    createPlatform(this, x, lastPlatformY);
   }
 
   // Update score display
-  scoreText.setText(`Score: ${score}`);
+  scoreText.setText(`TORI Score: ${score}`);
 }
 
-// Create a platform
-function createPlatform(scene, x, y) {
+// Spawn a platform
+function spawnPlatform(scene, y) {
+  const x = Phaser.Math.Between(50, config.width - 50);
   const platform = platforms.create(x, y, 'platform');
-  const scaleX = Phaser.Math.FloatBetween(PLATFORM_LENGTH_MIN, PLATFORM_LENGTH_MAX);
-  platform.setScale(scaleX, PLATFORM_SCALE_Y);
+  const widthScale = Phaser.Math.FloatBetween(PLATFORM_LENGTH_MIN, PLATFORM_LENGTH_MAX);
+  platform.displayWidth = platform.width * widthScale;
+  platform.displayHeight = platform.height * PLATFORM_SCALE_Y;
   platform.body.setImmovable(true);
-  platform.body.checkCollision.down = false;
-  platform.body.checkCollision.left = false;
-  platform.body.checkCollision.right = false;
+  platform.body.allowGravity = false;
 
-  // Random horizontal movement
-  const speed = Phaser.Math.Between(PLATFORM_SPEED_MIN, PLATFORM_SPEED_MAX);
-  const direction = Phaser.Math.Between(0, 1) ? 1 : -1;
-  platform.body.setVelocityX(speed * direction);
-  platform.speed = speed;
-  platform.direction = direction;
+  // Random horizontal speed and direction
+  let speed = Phaser.Math.Between(PLATFORM_SPEED_MIN, PLATFORM_SPEED_MAX);
+  speed = Phaser.Math.Between(0, 1) ? speed : -speed;
+  platform.body.setVelocityX(speed);
+  platform.body.setCollideWorldBounds(true);
+  platform.body.setBounceX(1);
 
-  // Bounce off world bounds
-  platform.update = function() {
-    if (this.x < this.displayWidth / 2) {
-      this.body.setVelocityX(this.speed);
-    } else if (this.x > config.width - this.displayWidth / 2) {
-      this.body.setVelocityX(-this.speed);
-    }
-  };
-  scene.physics.world.on('worldstep', () => platform.update());
+  // Spawn item (banana) on platform
+  spawnItem(scene, platform);
+}
 
-  // Add item
-  const itemName = Phaser.Utils.Array.GetRandom(ITEM_NAMES);
-  const item = items.create(x, y - (platform.displayHeight / 2) - 20, itemName)
-    .setScale(0.5);
-  item.parentPlatform = platform;
-  platform.item = item;
+// Spawn an item on the platform
+function spawnItem(scene, platform) {
+  const itemX = platform.x;
+  const itemY = platform.y - platform.displayHeight / 2 - 10;
+  const item = items.create(itemX, itemY, 'item');
+  item.body.allowGravity = false;
 
-  // Idle animation
+  // Idle animation (floating effect)
   scene.tweens.add({
     targets: item,
-    y: item.y - 10,
+    y: itemY - 10,
     duration: 1000,
     ease: 'Sine.easeInOut',
     yoyo: true,
@@ -188,22 +204,12 @@ function collectItem(player, item) {
   // Collection animation
   this.tweens.add({
     targets: item,
-    scale: 0,
-    duration: 300,
-    ease: 'Power2',
-    onComplete: () => item.destroy()
+    scale: 1.5,
+    duration: 100,
+    onComplete: () => {
+      particles.emitParticleAt(item.x, item.y);
+      item.destroy();
+      score++;
+    }
   });
-
-  // Particle effect
-  const particles = this.add.particles(item.x, item.y, 'particle', {
-    scale: { start: 0.2, end: 0 },
-    speed: { min: 50, max: 150 },
-    lifespan: 500,
-    quantity: 20,
-    radial: true
-  });
-  this.time.delayedCall(500, () => particles.destroy());
-
-  score++;
-  item.parentPlatform.item = null;
 }
