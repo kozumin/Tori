@@ -1,18 +1,16 @@
 // === CONFIGURATION PARAMETERS ===
-// Platform settings
-const PLATFORM_SPACING    = 250;    // Vertical spacing between platforms
-const PLATFORM_SCALE_X    = 0.5;    // Multiply the platform's original width
-const PLATFORM_SCALE_Y    = 0.5;    // Multiply the platform's original height
-const PLATFORM_MIN_SPEED  = 5;      // Minimum horizontal speed
-const PLATFORM_MAX_SPEED  = 90;     // Maximum horizontal speed
+// (Unchanged from your provided code)
+const PLATFORM_SPACING    = 250;
+const PLATFORM_SCALE_X    = 0.5;
+const PLATFORM_SCALE_Y    = 0.5;
+const PLATFORM_MIN_SPEED  = 5;
+const PLATFORM_MAX_SPEED  = 90;
 
-// Empty sprite settings
-const TOTAL_EMPTY_SPRITES = 15;     // Total number of empty sprites
-const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floats up
-const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween
-const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween
+const TOTAL_EMPTY_SPRITES = 15;
+const EMPTY_IDLE_DISTANCE = 10;
+const EMPTY_IDLE_DURATION = 1000;
+const EMPTY_IDLE_EASE     = 'Sine.easeInOut';
 
-// New configuration for collectible items
 const ITEM_NAMES = ['icecream', 'banana', 'broccoli', 'carrot', 'cherry', 'kitty', 'mermais', 'princess', 'strawberry', 'unicorn', 'watermelon'];
 const EMPTY_SPRITE_CONFIG = {
   icecream:   { height: 64 },
@@ -28,43 +26,39 @@ const EMPTY_SPRITE_CONFIG = {
   watermelon: { height: 64 }
 };
 
-// Player settings
-const PLAYER_SPEED        = 450;    // Maximum horizontal speed
-const PLAYER_JUMP_HEIGHT  = -550;   // Base vertical jump velocity (adjusted by direction)
-const PLAYER_WIDTH        = 84;     // Display width for player
-const PLAYER_HEIGHT       = 178;    // Display height for player
-const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false for a static image
-const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width
-const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height
+const PLAYER_SPEED        = 450;
+const PLAYER_JUMP_HEIGHT  = -550;
+const PLAYER_WIDTH        = 84;
+const PLAYER_HEIGHT       = 178;
+const PLAYER_ANIMATED     = false;
+const PLAYER_FRAME_WIDTH  = 1000;
+const PLAYER_FRAME_HEIGHT = 1000;
 
-// Particle effect settings
-const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles
-const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle
-const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles
-const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from player's center to bottom edge
-const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission
+const PARTICLE_SCALE      = 0.1;
+const TRAIL_PARTICLE_LIFESPAN = 500;
+const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 };
+const TRAIL_PARTICLE_OFFSET_Y = 64;
+const TRAIL_PARTICLE_EMIT_DURATION = 200;
 
-// Star burst particle effect settings (on item collection)
-const STAR_BURST_LIFESPAN = 1000;   // Lifespan (ms) for star particles
-const STAR_BURST_QUANTITY = 20;     // Number of star particles in burst
-const STAR_BURST_SCALE    = 0.2;    // Starting scale for star particles
-const STAR_BURST_SPEED    = { min: 50, max: 200 }; // Speed range for radial burst
+const STAR_BURST_LIFESPAN = 1000;
+const STAR_BURST_QUANTITY = 20;
+const STAR_BURST_SCALE    = 0.2;
+const STAR_BURST_SPEED    = { min: 50, max: 200 };
 
-// Score/HUD settings
-const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score
-const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; // Fancy gaming font
-const SCORE_FONT_COLOR    = "#ffffff";             // White color
-const SCORE_X             = 360 / 2;               // Centered horizontally
-const SCORE_Y             = 10;                    // 10px from top
+const SCORE_FONT_SIZE     = 32;
+const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive';
+const SCORE_FONT_COLOR    = "#ffffff";
+const SCORE_X             = 360 / 2;
+const SCORE_Y             = 10;
 
 // === GAME CONFIGURATION ===
 const config = {
   type: Phaser.AUTO,
-  width: 360,  // Fixed base width
-  height: 640, // Fixed base height
+  width: 360,
+  height: 640,
   scale: {
-    mode: Phaser.Scale.FIT, // Fit within the screen, maintaining aspect ratio
-    autoCenter: Phaser.Scale.CENTER_BOTH // Center both horizontally and vertically
+    mode: Phaser.Scale.FIT,
+    autoCenter: Phaser.Scale.CENTER_BOTH
   },
   physics: {
     default: 'arcade',
@@ -167,29 +161,23 @@ function create() {
     });
   }
   
-  // Improved platform creation logic
+  // Fixed platform creation: one platform per vertical level
   platforms = this.physics.add.group();
-  const PLATFORMS_PER_LEVEL = 2; // Two platforms per vertical level
-  const INITIAL_LEVELS = 8;      // Number of vertical levels to start with
+  const INITIAL_LEVELS = 8;
   for (let level = 0; level < INITIAL_LEVELS; level++) {
-    let y = config.height - 20 - level * PLATFORM_SPACING; // From 620 down to -1380
-    for (let i = 0; i < PLATFORMS_PER_LEVEL; i++) {
-      let sectionWidth = config.width / PLATFORMS_PER_LEVEL; // 360 / 2 = 180
-      let minX = i * sectionWidth + 20;                      // Left: 20, Right: 200
-      let maxX = (i + 1) * sectionWidth - 20;                // Left: 160, Right: 340
-      let x = Phaser.Math.Between(minX, maxX);
-      let plat = platforms.create(x, y, 'platform');
-      plat.displayWidth = plat.width * PLATFORM_SCALE_X;
-      plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
-      plat.body.setImmovable(true);
-      plat.body.allowGravity = false;
-      let vx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
-      if (Phaser.Math.Between(0, 1)) vx = -vx;
-      plat.body.setVelocityX(vx);
-      plat.body.setCollideWorldBounds(true);
-      plat.body.setBounce(1, 0);
-      plat.emptySprite = null;
-    }
+    let y = config.height - 20 - level * PLATFORM_SPACING; // e.g., 620, 370, 120, -130, etc.
+    let x = Phaser.Math.Between(20, config.width - 20);    // Random x between 20 and 340
+    let plat = platforms.create(x, y, 'platform');
+    plat.displayWidth = plat.width * PLATFORM_SCALE_X;
+    plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
+    plat.body.setImmovable(true);
+    plat.body.allowGravity = false;
+    let vx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
+    if (Phaser.Math.Between(0, 1)) vx = -vx;
+    plat.body.setVelocityX(vx);
+    plat.body.setCollideWorldBounds(true);
+    plat.body.setBounce(1, 0);
+    plat.emptySprite = null;
   }
   
   if (PLAYER_ANIMATED) {
@@ -279,14 +267,12 @@ function update() {
   if (player.y < scrollThreshold) {
     let delta = scrollThreshold - player.y;
     player.y = scrollThreshold;
-    let highestY = config.height;
-    platforms.getChildren().forEach((platform) => {
-      if (platform.y < highestY) highestY = platform.y;
-    });
+    let highestY = Math.min(...platforms.getChildren().map(p => p.y)); // Initial highest platform
     platforms.children.iterate((platform) => {
       platform.y += delta;
       if (platform.y > config.height + platform.displayHeight) {
-        platform.y = highestY - PLATFORM_SPACING;
+        platform.y = highestY - PLATFORM_SPACING; // Place above current highest
+        highestY = platform.y;                    // Update highestY for next platform
         platform.x = Phaser.Math.Between(20, config.width - 20);
         let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
         if (Phaser.Math.Between(0, 1)) newVx = -newVx;
@@ -353,7 +339,7 @@ function collectEmpty(player, emptySprite, scene) {
     lifespan: STAR_BURST_LIFESPAN,
     quantity: STAR_BURST_QUANTITY,
     on: false,
-    tint: () => Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random color per particle
+    tint: () => Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF])
   });
   starParticles.setPosition(emitterCenterX, emitterCenterY);
   starParticles.start();
