@@ -1,159 +1,3 @@
-// === CONFIGURATION PARAMETERS ===
-// Platform settings
-const PLATFORM_SPACING    = 250;    // Vertical spacing between platforms.
-const PLATFORM_SCALE_X    = 0.5;    // Multiply the platform's original width.
-const PLATFORM_SCALE_Y    = 0.5;    // Multiply the platform's original height.
-const PLATFORM_MIN_SPEED  = 5;      // Minimum horizontal speed.
-const PLATFORM_MAX_SPEED  = 90;     // Maximum horizontal speed.
-
-// Empty sprite settings
-const TOTAL_EMPTY_SPRITES = 15;     // Total number of empty sprites.
-const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floats up.
-const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween.
-const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween;
-
-// New configuration for collectible items
-const ITEM_NAMES = ['icecream', 'banana', 'broccoli', 'carrot', 'cherry', 'kitty', 'mermais', 'princess', 'strawberry', 'unicorn', 'watermelon'];
-const EMPTY_SPRITE_CONFIG = {
-  icecream:   { height: 64 },
-  banana:     { height: 64 },
-  broccoli:   { height: 64 },
-  carrot:     { height: 64 },
-  cherry:     { height: 64 },
-  kitty:      { height: 64 },
-  mermais:    { height: 64 },
-  princess:   { height: 64 },
-  strawberry: { height: 64 },
-  unicorn:    { height: 64 },
-  watermelon: { height: 64 }
-};
-
-// Player settings
-const PLAYER_SPEED        = 450;    // Maximum horizontal speed.
-const PLAYER_JUMP_HEIGHT  = -550;   // Base vertical jump velocity (adjusted by direction).
-const PLAYER_WIDTH        = 84;     // Display width for player.
-const PLAYER_HEIGHT       = 178;    // Display height for player.
-const PLAYER_ANIMATED     = false;  // Set to true if using a spritesheet; false for a static image.
-const PLAYER_FRAME_WIDTH  = 1000;   // (If animated) frame width.
-const PLAYER_FRAME_HEIGHT = 1000;   // (If animated) frame height.
-
-// Particle effect settings
-const PARTICLE_SCALE      = 0.1;    // Starting scale for jump particles.
-const TRAIL_PARTICLE_LIFESPAN = 500;              // Lifespan (ms) for each trail particle.
-const TRAIL_PARTICLE_SPEED    = { min: -100, max: 100 }; // Speed range for trail particles.
-const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from player's center to bottom edge.
-const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission.
-
-// Star burst particle effect settings (on item collection)
-const STAR_BURST_LIFESPAN = 1000;   // Lifespan (ms) for star particles (reduced).
-const STAR_BURST_QUANTITY = 20;     // Number of star particles in burst (reduced).
-const STAR_BURST_SCALE    = 0.2;    // Starting scale for star particles (reduced).
-const STAR_BURST_SPEED    = { min: 50, max: 200 }; // Speed range for radial burst (adjusted).
-
-// Score/HUD settings
-const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score.
-const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; // Fancy gaming font.
-const SCORE_FONT_COLOR    = "#ffffff";             // White color.
-const SCORE_X             = 360 / 2;               // Centered horizontally (static for now).
-const SCORE_Y             = 10;                    // 10px from top.
-
-// === GAME CONFIGURATION ===
-const config = {
-  type: Phaser.AUTO,
-  width: 360,  // Fixed base width
-  height: 640, // Fixed base height
-  scale: {
-    mode: Phaser.Scale.FIT, // Fit within the screen, maintaining aspect ratio
-    autoCenter: Phaser.Scale.CENTER_BOTH // Center both horizontally and vertically
-  },
-  physics: {
-    default: 'arcade',
-    arcade: { gravity: { y: 600 }, debug: false }
-  },
-  scene: {
-    preload: preload,
-    create: create,
-    update: update
-  }
-};
-
-let player, platforms, empties, scoreText, particles;
-let pointerDownStart = { x: null, y: null, time: null };
-let isDragging = false;
-let score = 0;
-
-const game = new Phaser.Game(config);
-
-function spawnEmptyOnPlatform(platform, scene) {
-  console.log("Spawning empty sprite on platform at (" + platform.x + ", " + platform.y + ")");
-  let platformTop = platform.y - platform.displayHeight / 2;
-  let itemKey = Phaser.Utils.Array.GetRandom(ITEM_NAMES);
-  let emptySprite = scene.add.sprite(platform.x, platformTop, itemKey);
-  emptySprite.setOrigin(0.5, 1);
-  
-  let texture = scene.textures.get(itemKey).getSourceImage();
-  let originalWidth = texture.width;
-  let originalHeight = texture.height;
-  let desiredHeight = EMPTY_SPRITE_CONFIG[itemKey].height;
-  let scaleFactor = desiredHeight / originalHeight;
-  let desiredWidth = originalWidth * scaleFactor;
-  emptySprite.setDisplaySize(desiredWidth, desiredHeight);
-  
-  scene.physics.add.existing(emptySprite);
-  emptySprite.body.setAllowGravity(false);
-  emptySprite.body.setImmovable(true);
-  emptySprite.customOffset = 0;
-  emptySprite.parentPlatform = platform;
-  platform.emptySprite = emptySprite;
-  empties.add(emptySprite);
-  scene.tweens.add({
-    targets: emptySprite,
-    customOffset: EMPTY_IDLE_DISTANCE,
-    duration: EMPTY_IDLE_DURATION,
-    yoyo: true,
-    repeat: -1,
-    ease: EMPTY_IDLE_EASE,
-    onStart: () => { console.log("Idle tween started for empty sprite on platform at (" + platform.x + ", " + platform.y + ")"); }
-  });
-}
-
-function preload() {
-  console.log("Preloading assets...");
-  console.log("Phaser version:", Phaser.VERSION);
-  this.load.image('background', 'assets/background.png');
-  this.load.image('platform', 'assets/platform.png');
-  if (PLAYER_ANIMATED) {
-    this.load.spritesheet('player', 'assets/player.png', {
-      frameWidth: PLAYER_FRAME_WIDTH,
-      frameHeight: PLAYER_FRAME_HEIGHT
-    });
-  } else {
-    this.load.image('player', 'assets/player.png');
-  }
-  this.load.image('particle', 'assets/particle.png');
-  this.load.image('stars', 'assets/stars.png');
-  this.load.on('filecomplete-image-particle', () => {
-    console.log("Particle texture loaded successfully!");
-  });
-  this.load.on('filecomplete-image-stars', () => {
-    console.log("Stars texture loaded successfully!");
-  });
-  this.load.on('loaderror', (file) => {
-    console.error("Error loading file:", file.key);
-  });
-  this.load.image('icecream', 'assets/icecream.png');
-  this.load.image('banana', 'assets/banana.png');
-  this.load.image('broccoli', 'assets/broccoli.png');
-  this.load.image('carrot', 'assets/carrot.png');
-  this.load.image('cherry', 'assets/cherry.png');
-  this.load.image('kitty', 'assets/kitty.png');
-  this.load.image('mermais', 'assets/mermais.png');
-  this.load.image('princess', 'assets/princess.png');
-  this.load.image('strawberry', 'assets/strawberry.png');
-  this.load.image('unicorn', 'assets/unicorn.png');
-  this.load.image('watermelon', 'assets/watermelon.png');
-}
-
 function create() {
   console.log("Creating scene...");
   let bg = this.add.image(0, 0, 'background').setOrigin(0, 0);
@@ -181,22 +25,32 @@ function create() {
     });
   }
   
+  // New platform creation logic
   platforms = this.physics.add.group();
-  for (let y = config.height - 20; y >= -PLATFORM_SPACING * 2; y -= PLATFORM_SPACING) {
-    let x = Phaser.Math.Between(20, config.width - 20);
-    let plat = platforms.create(x, y, 'platform');
-    plat.displayWidth = plat.width * PLATFORM_SCALE_X;
-    plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
-    plat.body.setImmovable(true);
-    plat.body.allowGravity = false;
-    let vx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
-    if (Phaser.Math.Between(0, 1)) vx = -vx;
-    plat.body.setVelocityX(vx);
-    plat.body.setCollideWorldBounds(true);
-    plat.body.setBounce(1, 0);
-    plat.emptySprite = null;
+  const PLATFORMS_PER_LEVEL = 2; // Two platforms per vertical level
+  const INITIAL_LEVELS = 8;      // Number of vertical levels to start with
+  for (let level = 0; level < INITIAL_LEVELS; level++) {
+    let y = config.height - 20 - level * PLATFORM_SPACING; // From 620 down to -1380
+    for (let i = 0; i < PLATFORMS_PER_LEVEL; i++) {
+      let sectionWidth = config.width / PLATFORMS_PER_LEVEL; // 360 / 2 = 180
+      let minX = i * sectionWidth + 20;                      // Left: 20, Right: 200
+      let maxX = (i + 1) * sectionWidth - 20;                // Left: 160, Right: 340
+      let x = Phaser.Math.Between(minX, maxX);
+      let plat = platforms.create(x, y, 'platform');
+      plat.displayWidth = plat.width * PLATFORM_SCALE_X;
+      plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
+      plat.body.setImmovable(true);
+      plat.body.allowGravity = false;
+      let vx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
+      if (Phaser.Math.Between(0, 1)) vx = -vx;
+      plat.body.setVelocityX(vx);
+      plat.body.setCollideWorldBounds(true);
+      plat.body.setBounce(1, 0);
+      plat.emptySprite = null;
+    }
   }
   
+  // Player setup remains unchanged
   if (PLAYER_ANIMATED) {
     player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player');
     player.setDisplaySize(PLAYER_WIDTH, PLAYER_HEIGHT);
@@ -277,135 +131,4 @@ function create() {
     }
     pointerDownStart = { x: null, y: null, time: null };
   });
-}
-
-function update() {
-  if (!this.input.activePointer.isDown) {
-    player.setVelocityX(player.body.velocity.x * 0.95);
-  }
-  
-  const scrollThreshold = 300;
-  if (player.y < scrollThreshold) {
-    let delta = scrollThreshold - player.y;
-    player.y = scrollThreshold;
-    let highestY = config.height;
-    platforms.getChildren().forEach((platform) => {
-      if (platform.y < highestY) highestY = platform.y;
-    });
-    platforms.children.iterate((platform) => {
-      platform.y += delta;
-      if (platform.y > config.height + platform.displayHeight) {
-        platform.y = highestY - PLATFORM_SPACING;
-        platform.x = Phaser.Math.Between(20, config.width - 20);
-        let newVx = Phaser.Math.Between(PLATFORM_MIN_SPEED, PLATFORM_MAX_SPEED);
-        if (Phaser.Math.Between(0, 1)) newVx = -newVx;
-        platform.body.setVelocityX(newVx);
-        if (platform.emptySprite) {
-          platform.emptySprite.destroy();
-          platform.emptySprite = null;
-        }
-        if (Phaser.Math.Between(0, 1)) {
-          spawnEmptyOnPlatform(platform, this);
-        }
-      }
-    });
-  }
-  
-  let deltaTime = this.game.loop.delta / 1000;
-  platforms.children.iterate((platform) => {
-    if (player.body.touching.down && platform.body.touching.up &&
-        player.x > platform.x - platform.displayWidth / 2 &&
-        player.x < platform.x + platform.displayWidth / 2) {
-      player.x += platform.body.velocity.x * deltaTime;
-    }
-  });
-  
-  empties.getChildren().forEach((emptySprite) => {
-    if (!emptySprite.active) return;
-    if (emptySprite.parentPlatform) {
-      let platform = emptySprite.parentPlatform;
-      let platformTop = platform.y - (platform.displayHeight / 2);
-      emptySprite.x = platform.x;
-      emptySprite.y = platformTop + emptySprite.customOffset;
-    }
-  });
-  
-  scoreText.setText("TORI: " + score);
-  
-  if (!player.body.touching.down) {
-    if (PLAYER_ANIMATED) player.anims.play('jump', true);
-  } else {
-    if (Math.abs(player.body.velocity.x) > 10) {
-      if (PLAYER_ANIMATED) player.anims.play('walk', true);
-    } else {
-      if (PLAYER_ANIMATED) player.anims.play('idle', true);
-    }
-  }
-  
-  if (player.y > config.height) {
-    console.log("Player fell; restarting game.");
-    restartGame(this);
-  }
-}
-
-function collectEmpty(player, emptySprite, scene) {
-  if (!emptySprite.active) return;
-  console.log("Collecting empty sprite at (" + emptySprite.x + ", " + emptySprite.y + ")");
-  emptySprite.scene.tweens.killTweensOf(emptySprite);
-  emptySprite.body.enable = false;
-  
-  let emitterCenterX = emptySprite.x;
-  let emitterCenterY = emptySprite.y - (emptySprite.displayHeight / 2);
-  console.log("Creating star burst emitter at (" + emitterCenterX + ", " + emitterCenterY + ")");
-  let starParticles = scene.add.particles(0, 0, 'stars', {
-    scale: { start: STAR_BURST_SCALE, end: 0 },
-    blendMode: 'ADD',
-    speed: STAR_BURST_SPEED,
-    radial: true,
-    lifespan: STAR_BURST_LIFESPAN,
-    quantity: STAR_BURST_QUANTITY,
-    on: false,
-    tint: () => Phaser.Utils.Array.GetRandom([0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF]) // Random color per particle
-  });
-  starParticles.setPosition(emitterCenterX, emitterCenterY);
-  console.log("Starting star burst emission");
-  starParticles.start();
-  scene.time.delayedCall(300, () => {
-    starParticles.stop();
-    console.log("Star burst emission stopped");
-    scene.time.delayedCall(STAR_BURST_LIFESPAN, () => {
-      starParticles.destroy();
-      console.log("Star burst emitter destroyed");
-    });
-  });
-  
-  emptySprite.scene.tweens.add({
-    targets: emptySprite,
-    x: player.x,
-    y: player.y,
-    scaleX: 0,
-    scaleY: 0,
-    duration: 500,
-    ease: 'Quad.easeIn',
-    onStart: () => { console.log("Collection tween started for empty sprite."); },
-    onComplete: function() {
-      console.log("Empty sprite collection tween complete.");
-      emptySprite.destroy();
-    }
-  });
-  if (emptySprite.parentPlatform) {
-    emptySprite.parentPlatform.emptySprite = null;
-  }
-  score++;
-  emptySprite.scene.tweens.add({
-    targets: scoreText,
-    scale: 1.5,
-    duration: 200,
-    yoyo: true,
-    ease: 'Power1'
-  });
-}
-
-function restartGame(scene) {
-  scene.scene.restart();
 }
