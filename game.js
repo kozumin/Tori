@@ -1,6 +1,6 @@
 // === CONFIGURATION PARAMETERS ===
 // Platform settings
-const PLATFORM_SPACING_MIN = 150;   // Minimum vertical spacing between platforms
+const PLATFORM_SPACING_MIN = 250;   // Minimum vertical spacing between platforms
 const PLATFORM_SPACING_MAX = 350;   // Maximum vertical spacing between platforms
 const PLATFORM_LENGTH_MIN  = 0.3;   // Minimum scale factor for platform width
 const PLATFORM_LENGTH_MAX  = 0.7;   // Maximum scale factor for platform width
@@ -305,7 +305,7 @@ function update() {
   // Remove platforms below screen and spawn new ones above
   let bottomThreshold = camera.scrollY + config.height + 100; // Remove platforms slightly below screen
   let topThreshold = camera.scrollY - PLATFORM_SPACING_MAX; // Spawn above visible area
-  platforms.children.each((platform) => {
+  platforms.children.iterate((platform) => { // Use iterate for physics group
     if (platform.y > bottomThreshold) {
       if (platform.emptySprite) {
         platform.emptySprite.destroy();
@@ -322,12 +322,12 @@ function update() {
     let x = Phaser.Math.Between(20, config.width - 20);
     let plat = createPlatform(this, x, highestPlatformY);
     if (plat.y < highestPlatformY) {
-      highestPlatformY = plat.y; // Update highest point if necessary
+      highestPlatformY = plat.y; // Ensure highestPlatformY reflects the new platform
     }
   }
   
   let deltaTime = this.game.loop.delta / 1000;
-  platforms.children.each((platform) => {
+  platforms.children.iterate((platform) => { // Use iterate for physics group
     if (player.body.touching.down && platform.body.touching.up &&
         player.x > platform.x - platform.displayWidth / 2 &&
         player.x < platform.x + platform.displayWidth / 2) {
@@ -335,7 +335,7 @@ function update() {
     }
   }, this);
   
-  empties.getChildren().each((emptySprite) => {
+  empties.children.iterate((emptySprite) => { // Use iterate for physics group
     if (!emptySprite.active) return;
     if (emptySprite.parentPlatform) {
       let platform = emptySprite.parentPlatform;
