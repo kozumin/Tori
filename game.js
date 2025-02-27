@@ -46,10 +46,10 @@ const TRAIL_PARTICLE_OFFSET_Y = 64;                // Vertical offset from playe
 const TRAIL_PARTICLE_EMIT_DURATION = 200;          // Duration (ms) for emission
 
 // Star burst particle effect settings (on item collection)
-const STAR_BURST_LIFESPAN = 1000;   // Lifespan (ms) for star particles (reduced)
-const STAR_BURST_QUANTITY = 20;     // Number of star particles in burst (reduced)
-const STAR_BURST_SCALE    = 0.2;    // Starting scale for star particles (reduced)
-const STAR_BURST_SPEED    = { min: 50, max: 200 }; // Speed range for radial burst (adjusted)
+const STAR_BURST_LIFESPAN = 2000;   // Lifespan (ms) for star particles
+const STAR_BURST_QUANTITY = 50;     // Number of star particles in burst
+const STAR_BURST_SCALE    = 2.0;    // Starting scale for star particles
+const STAR_BURST_SPEED    = { min: 100, max: 400 }; // Speed range for radial burst
 
 // Score/HUD settings
 const SCORE_FONT_SIZE     = 32;                    // Font size (px) for the score
@@ -57,6 +57,9 @@ const SCORE_FONT_FAMILY   = '"Press Start 2P", cursive'; // Fancy gaming font
 const SCORE_FONT_COLOR    = "#ffffff";             // White color
 const SCORE_X             = 360 / 2;               // Centered horizontally (static for now)
 const SCORE_Y             = 10;                    // 10px from top
+
+// Scrolling settings
+const SCROLL_THRESHOLD    = 300;    // Height threshold to trigger upward scroll
 
 // === GAME CONFIGURATION ===
 const config = {
@@ -82,7 +85,7 @@ let player, platforms, empties, scoreText, particles, camera;
 let pointerDownStart = { x: null, y: null, time: null };
 let isDragging = false;
 let score = 0;
-let highestPlatformY = 0; // Track the highest platform position globally
+let lastPlatformY = config.height - 20; // Track the y-position of the last platform
 
 const game = new Phaser.Game(config);
 
@@ -101,7 +104,7 @@ function spawnEmptyOnPlatform(platform, scene) {
   let desiredWidth = originalWidth * scaleFactor;
   emptySprite.setDisplaySize(desiredWidth, desiredHeight);
   
-  scene.physics.world.enable(emptySprite); // Use world.enable for physics group compatibility
+  scene.physics.world.enable(emptySprite);
   emptySprite.body.setAllowGravity(false);
   emptySprite.body.setImmovable(true);
   emptySprite.customOffset = 0;
@@ -176,7 +179,7 @@ function preload() {
 
 function create() {
   console.log("Creating scene...");
-  let bg = this.add.image(0, 0, 'background').setOrigin(0, 0).setScrollFactor(0); // Fix background in place
+  let bg = this.add.image(0, 0, 'background').setOrigin(0, 0).setScrollFactor(0); // Fixed background
   bg.displayWidth = config.width;
   bg.displayHeight = config.height;
   
@@ -202,38 +205,30 @@ function create() {
   }
   
   platforms = this.physics.add.group();
-  empties = this.physics.add.group(); // Ensure this is a physics group
-  highestPlatformY = config.height - 20; // Start at bottom, just above ground
+  empties = this.physics.add.group();
+  lastPlatformY = config.height - 50; // Start just above the bottom of the screen
   
-  // Initial platforms, covering visible area and a buffer above
-  for (let y = highestPlatformY; y >= config.height - (PLATFORM_SPACING_MAX * 3); y -= Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX)) {
+  // Initial platforms to fill the visible area
+  for (let i = 0; i < 5; i++) { // 5 initial platforms to cover ~640px
+    let spacing = Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
+    lastPlatformY -= spacing;
     let x = Phaser.Math.Between(20, config.width - 20);
-    let plat = createPlatform(this, x, y);
-    if (plat.y < highestPlatformY) {
-      highestPlatformY = plat.y; // Track the highest platform
-    }
+    createPlatform(this, x, lastPlatformY);
   }
   
-  if (PLAYER_ANIMATED) {
-    player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player');
-    player.setDisplaySize(PLAYER_WIDTH, PLAYER_HEIGHT);
-    player.anims.play('idle');
-  } else {
-    player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player');
-    player.setDisplaySize(PLAYER_WIDTH, PLAYER_HEIGHT);
-  }
+  player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player'); // Player starts at bottom
+  player.setDisplaySize(PLAYER_WIDTH, PLAYER_HEIGHT);
+  if (PLAYER_ANIMATED) player.anims.play('idle');
   player.setCollideWorldBounds(true);
   
   this.physics.add.collider(player, platforms);
-  
   this.physics.add.overlap(player, empties, (player, emptySprite) => {
     collectEmpty(player, emptySprite, this);
   }, null, this);
   
-  // Set up camera to follow player vertically
   camera = this.cameras.main;
   camera.setBounds(0, 0, config.width, Number.MAX_VALUE); // Allow infinite vertical scrolling
-  camera.startFollow(player, true, 0, 0.1, 0, -50); // Follow player, slight lag for smoothness, offset upward
+  camera.startFollow(player, true, 0, 0.1, 0, 0); // Follow player with slight lag, no offset
   
   this.input.on('pointerdown', (pointer) => {
     pointerDownStart = { x: pointer.x, y: pointer.y, time: pointer.downTime };
@@ -299,14 +294,14 @@ function update() {
     player.setVelocityX(player.body.velocity.x * 0.95);
   }
   
-  // Camera follows player smoothly (relative to world coords)
-  camera.scrollY = player.y - config.height / 2 + 50; // Center player vertically, offset upward
+  // Camera follows player smoothly
+  camera.scrollY = player.y - config.height / 2; // Center player vertically
   
   // Remove platforms below screen and spawn new ones above
   let bottomThreshold = camera.scrollY + config.height + 100; // Remove platforms slightly below screen
   let topThreshold = camera.scrollY - PLATFORM_SPACING_MAX; // Spawn above visible area
   platforms.children.iterate((platform) => {
-    if (platform && platform.y > bottomThreshold) { // Check if platform exists
+    if (platform && platform.y > bottomThreshold) {
       if (platform.emptySprite) {
         platform.emptySprite.destroy();
         platform.emptySprite = null;
@@ -315,15 +310,12 @@ function update() {
     }
   }, this);
   
-  // Spawn new platforms if needed
-  while (highestPlatformY > topThreshold) {
+  // Spawn new platform above the last one if needed
+  if (lastPlatformY > topThreshold) {
     let spacing = Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
-    highestPlatformY -= spacing;
+    lastPlatformY -= spacing;
     let x = Phaser.Math.Between(20, config.width - 20);
-    let plat = createPlatform(this, x, highestPlatformY);
-    if (plat && plat.y < highestPlatformY) {
-      highestPlatformY = plat.y; // Ensure highestPlatformY reflects the new platform
-    }
+    createPlatform(this, x, lastPlatformY);
   }
   
   let deltaTime = this.game.loop.delta / 1000;
@@ -338,7 +330,7 @@ function update() {
   empties.children.iterate((emptySprite) => {
     if (emptySprite && emptySprite.active && emptySprite.parentPlatform) {
       let platform = emptySprite.parentPlatform;
-      if (platform) { // Check if platform exists
+      if (platform) {
         let platformTop = platform.y - (platform.displayHeight / 2);
         emptySprite.x = platform.x;
         emptySprite.y = platformTop + emptySprite.customOffset;
