@@ -7,7 +7,7 @@ const PLATFORM_MIN_SPEED  = 5;      // Minimum horizontal speed.
 const PLATFORM_MAX_SPEED  = 90;     // Maximum horizontal speed.
 
 // Empty sprite settings
-const TOTAL_EMPTY_SPRITES = 15;     // Total number of empty sprites.
+const TOTAL_EMPTY_SPRITES = 35;     // Total number of empty sprites.
 const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floats up.
 const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween.
 const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween;
