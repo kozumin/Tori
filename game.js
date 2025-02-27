@@ -4,7 +4,7 @@ const PLATFORM_SPACING_MIN = 150;   // Minimum vertical spacing between platform
 const PLATFORM_SPACING_MAX = 350;   // Maximum vertical spacing between platforms
 const PLATFORM_LENGTH_MIN  = 0.3;   // Minimum scale factor for platform width
 const PLATFORM_LENGTH_MAX  = 0.7;   // Maximum scale factor for platform width
-const PLATFORM_SCALE_Y     = 0.5;   // Scale factor for platform height (reintroduced)
+const PLATFORM_SCALE_Y     = 0.5;   // Scale factor for platform height
 const PLATFORM_SPEED_MIN   = 5;     // Minimum horizontal speed
 const PLATFORM_SPEED_MAX   = 90;    // Maximum horizontal speed
 
@@ -122,7 +122,7 @@ function spawnEmptyOnPlatform(platform, scene) {
 function createPlatform(scene, x, y) {
   let plat = platforms.create(x, y, 'platform');
   plat.displayWidth = plat.width * Phaser.Math.FloatBetween(PLATFORM_LENGTH_MIN, PLATFORM_LENGTH_MAX);
-  plat.displayHeight = plat.height * PLATFORM_SCALE_Y; // Fixed by reintroducing PLATFORM_SCALE_Y
+  plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
   plat.body.setImmovable(true);
   plat.body.allowGravity = false;
   let vx = Phaser.Math.Between(PLATFORM_SPEED_MIN, PLATFORM_SPEED_MAX);
@@ -202,6 +202,7 @@ function create() {
   }
   
   platforms = this.physics.add.group();
+  empties = this.physics.add.group(); // Moved here to ensure proper initialization
   highestPlatformY = config.height - 20; // Start at bottom
   for (let y = highestPlatformY; y >= -config.height; y -= Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX)) {
     let x = Phaser.Math.Between(20, config.width - 20);
@@ -220,12 +221,6 @@ function create() {
   player.setCollideWorldBounds(true);
   
   this.physics.add.collider(player, platforms);
-  
-  empties = this.add.group();
-  
-  score = 0;
-  scoreText = this.add.text(SCORE_X, SCORE_Y, "TORI: " + score, { font: SCORE_FONT_SIZE + "px " + SCORE_FONT_FAMILY, fill: SCORE_FONT_COLOR });
-  scoreText.setOrigin(0.5, 0);
   
   this.physics.add.overlap(player, empties, (player, emptySprite) => {
     collectEmpty(player, emptySprite, this);
@@ -274,7 +269,7 @@ function create() {
         on: false
       });
       particles.startFollow(player, 0, TRAIL_PARTICLE_OFFSET_Y);
-      particles.start();
+      platforms.start();
       this.time.delayedCall(TRAIL_PARTICLE_EMIT_DURATION, () => {
         particles.stop();
         this.time.delayedCall(TRAIL_PARTICLE_LIFESPAN, () => {
@@ -284,6 +279,10 @@ function create() {
     }
     pointerDownStart = { x: null, y: null, time: null };
   });
+  
+  score = 0;
+  scoreText = this.add.text(SCORE_X, SCORE_Y, "TORI: " + score, { font: SCORE_FONT_SIZE + "px " + SCORE_FONT_FAMILY, fill: SCORE_FONT_COLOR });
+  scoreText.setOrigin(0.5, 0);
 }
 
 function update() {
