@@ -1,13 +1,14 @@
 // === CONFIGURATION PARAMETERS ===
 // Platform settings
-const PLATFORM_SPACING_MIN = 250;   // Minimum vertical spacing between platforms
+const PLATFORM_SPACING_MIN = 150;   // Minimum vertical spacing between platforms
 const PLATFORM_SPACING_MAX = 350;   // Maximum vertical spacing between platforms
 const PLATFORM_LENGTH_MIN  = 0.3;   // Minimum scale factor for platform width
 const PLATFORM_LENGTH_MAX  = 0.7;   // Maximum scale factor for platform width
+const PLATFORM_SCALE_Y     = 0.5;   // Scale factor for platform height (reintroduced)
 const PLATFORM_SPEED_MIN   = 5;     // Minimum horizontal speed
 const PLATFORM_SPEED_MAX   = 90;    // Maximum horizontal speed
 
-// Empty sprite settings (TOTAL_EMPTY_SPRITES removed)
+// Empty sprite settings
 const EMPTY_IDLE_DISTANCE = 10;     // How far (in pixels) the empty sprite floats up
 const EMPTY_IDLE_DURATION = 1000;   // Duration (ms) of the idle tween
 const EMPTY_IDLE_EASE     = 'Sine.easeInOut'; // Easing for the idle tween
@@ -121,7 +122,7 @@ function spawnEmptyOnPlatform(platform, scene) {
 function createPlatform(scene, x, y) {
   let plat = platforms.create(x, y, 'platform');
   plat.displayWidth = plat.width * Phaser.Math.FloatBetween(PLATFORM_LENGTH_MIN, PLATFORM_LENGTH_MAX);
-  plat.displayHeight = plat.height * PLATFORM_SCALE_Y;
+  plat.displayHeight = plat.height * PLATFORM_SCALE_Y; // Fixed by reintroducing PLATFORM_SCALE_Y
   plat.body.setImmovable(true);
   plat.body.allowGravity = false;
   let vx = Phaser.Math.Between(PLATFORM_SPEED_MIN, PLATFORM_SPEED_MAX);
