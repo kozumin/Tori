@@ -85,7 +85,7 @@ let player, platforms, empties, scoreText, particles, camera;
 let pointerDownStart = { x: null, y: null, time: null };
 let isDragging = false;
 let score = 0;
-let lastPlatformY = config.height - 20; // Track the y-position of the last platform
+let lastPlatformY = config.height - 50; // Track the y-position for the next platform
 
 const game = new Phaser.Game(config);
 
@@ -134,9 +134,7 @@ function createPlatform(scene, x, y) {
   plat.body.setCollideWorldBounds(true);
   plat.body.setBounce(1, 0);
   plat.emptySprite = null;
-  if (Phaser.Math.Between(0, 1)) {
-    spawnEmptyOnPlatform(plat, scene);
-  }
+  spawnEmptyOnPlatform(plat, scene); // One item per platform, always
   return plat;
 }
 
@@ -206,17 +204,17 @@ function create() {
   
   platforms = this.physics.add.group();
   empties = this.physics.add.group();
-  lastPlatformY = config.height - 50; // Start just above the bottom of the screen
+  lastPlatformY = config.height - 50; // Start just above the player at the bottom
   
-  // Initial platforms to fill the visible area
-  for (let i = 0; i < 5; i++) { // 5 initial platforms to cover ~640px
+  // Initial platforms to fill the visible area (5 platforms)
+  for (let i = 0; i < 5; i++) {
     let spacing = Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
     lastPlatformY -= spacing;
     let x = Phaser.Math.Between(20, config.width - 20);
     createPlatform(this, x, lastPlatformY);
   }
   
-  player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player'); // Player starts at bottom
+  player = this.physics.add.sprite(config.width / 2, config.height - 50, 'player'); // Player at bottom
   player.setDisplaySize(PLAYER_WIDTH, PLAYER_HEIGHT);
   if (PLAYER_ANIMATED) player.anims.play('idle');
   player.setCollideWorldBounds(true);
@@ -294,8 +292,8 @@ function update() {
     player.setVelocityX(player.body.velocity.x * 0.95);
   }
   
-  // Camera follows player smoothly
-  camera.scrollY = player.y - config.height / 2; // Center player vertically
+  // Camera follows player smoothly, centered vertically
+  camera.scrollY = player.y - config.height / 2;
   
   // Remove platforms below screen and spawn new ones above
   let bottomThreshold = camera.scrollY + config.height + 100; // Remove platforms slightly below screen
@@ -314,7 +312,7 @@ function update() {
   if (lastPlatformY > topThreshold) {
     let spacing = Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX);
     lastPlatformY -= spacing;
-    let x = Phaser.Math.Between(20, config.width - 20);
+    let x = Phaser.Math.Between(20, config.width - 20); // One platform per line, random x
     createPlatform(this, x, lastPlatformY);
   }
   
