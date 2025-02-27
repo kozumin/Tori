@@ -101,7 +101,7 @@ function spawnEmptyOnPlatform(platform, scene) {
   let desiredWidth = originalWidth * scaleFactor;
   emptySprite.setDisplaySize(desiredWidth, desiredHeight);
   
-  scene.physics.add.existing(emptySprite);
+  scene.physics.world.enable(emptySprite); // Use world.enable for physics group compatibility
   emptySprite.body.setAllowGravity(false);
   emptySprite.body.setImmovable(true);
   emptySprite.customOffset = 0;
@@ -202,7 +202,7 @@ function create() {
   }
   
   platforms = this.physics.add.group();
-  empties = this.physics.add.group(); // Moved here to ensure proper initialization
+  empties = this.physics.add.group(); // Ensure this is a physics group
   highestPlatformY = config.height - 20; // Start at bottom
   for (let y = highestPlatformY; y >= -config.height; y -= Phaser.Math.Between(PLATFORM_SPACING_MIN, PLATFORM_SPACING_MAX)) {
     let x = Phaser.Math.Between(20, config.width - 20);
@@ -269,7 +269,7 @@ function create() {
         on: false
       });
       particles.startFollow(player, 0, TRAIL_PARTICLE_OFFSET_Y);
-      platforms.start();
+      particles.start();
       this.time.delayedCall(TRAIL_PARTICLE_EMIT_DURATION, () => {
         particles.stop();
         this.time.delayedCall(TRAIL_PARTICLE_LIFESPAN, () => {
